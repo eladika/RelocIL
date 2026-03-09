@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReloScore — מנוע הרילוקיישן החכם</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --cream: #faf7f2;
+  --warm-white: #fff9f0;
+  --sand: #f0e8d8;
+  --sand2: #e8dcc8;
+  --gold: #d4a44c;
+  --gold-light: #f0c060;
+  --gold-pale: #fdf0d0;
+  --teal: #1a9e8e;
+  --teal-light: #22b8a6;
+  --teal-pale: #e0f5f2;
+  --coral: #e8654a;
+  --coral-pale: #fdeee9;
+  --navy: #1a2640;
+  --navy-mid: #243350;
+  --text: #1a1a2e;
+  --text-mid: #3d4460;
+  --text-muted: #8890a8;
+  --border: #e0d8cc;
+  --border-light: #ede8e0;
+  --radius: 20px;
+  --radius-sm: 12px;
+  --shadow: 0 4px 24px rgba(26,38,64,0.08);
+  --shadow-lg: 0 12px 48px rgba(26,38,64,0.14);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Heebo', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  direction: rtl;
+}
+
+/* Organic background blobs */
+.bg-blob {
+  position: fixed; pointer-events: none; z-index: 0; border-radius: 50%;
+  filter: blur(80px); opacity: 0.35;
+}
+.bg-blob-1 { width: 600px; height: 600px; background: radial-gradient(circle, #fce8b0, transparent); top: -150px; right: -150px; }
+.bg-blob-2 { width: 500px; height: 500px; background: radial-gradient(circle, #c8ede8, transparent); bottom: -100px; left: -100px; }
+.bg-blob-3 { width: 300px; height: 300px; background: radial-gradient(circle, #fdddd4, transparent); top: 40%; right: 20%; }
+
+/* Layout */
+.app { max-width: 1080px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+/* Header */
+.header {
+  padding: 28px 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 2px solid var(--border-light);
+  margin-bottom: 36px;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon {
+  width: 44px; height: 44px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--teal), var(--gold));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; box-shadow: 0 4px 16px rgba(26,158,142,0.3);
+}
+.logo-text { font-size: 24px; font-weight: 900; color: var(--navy); letter-spacing: -0.5px; }
+.logo-sub { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+.header-badge {
+  background: linear-gradient(135deg, var(--teal-pale), #d0f0ec);
+  color: var(--teal); border: 1px solid rgba(26,158,142,0.2);
+  padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+}
+
+/* Progress */
+.progress-wrap {
+  display: flex; align-items: center; gap: 0; margin-bottom: 36px;
+  background: white; border-radius: var(--radius); padding: 6px;
+  box-shadow: var(--shadow); border: 1px solid var(--border-light);
+}
+.progress-step {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 8px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+  cursor: pointer; transition: all 0.25s; text-align: center;
+}
+.progress-step .step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; background: var(--border-light); color: var(--text-muted);
+  flex-shrink: 0; transition: all 0.25s;
+}
+.progress-step.active {
+  background: linear-gradient(135deg, var(--teal), var(--teal-light));
+  color: white; box-shadow: 0 4px 16px rgba(26,158,142,0.3);
+}
+.progress-step.active .step-num { background: rgba(255,255,255,0.25); color: white; }
+.progress-step.done { color: var(--teal); }
+.progress-step.done .step-num { background: var(--teal-pale); color: var(--teal); }
+
+/* Hero panel */
+.hero-panel {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #1a3a50 100%);
+  border-radius: 28px; padding: 48px 40px; margin-bottom: 32px;
+  position: relative; overflow: hidden; color: white;
+}
+.hero-panel::before {
+  content: ''; position: absolute; top: -60px; left: -60px;
+  width: 300px; height: 300px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,164,76,0.2), transparent);
+}
+.hero-panel::after {
+  content: '✈️'; position: absolute; bottom: 20px; left: 32px;
+  font-size: 80px; opacity: 0.12; transform: rotate(-15deg);
+}
+.hero-title { font-size: 36px; font-weight: 900; margin-bottom: 12px; line-height: 1.2; }
+.hero-title span { color: var(--gold-light); }
+.hero-subtitle { font-size: 16px; color: rgba(255,255,255,0.7); line-height: 1.6; max-width: 500px; }
+.hero-stats { display: flex; gap: 24px; margin-top: 28px; flex-wrap: wrap; }
+.hero-stat {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px; padding: 12px 20px; text-align: center;
+}
+.hero-stat-num { font-size: 24px; font-weight: 900; color: var(--gold-light); }
+.hero-stat-label { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+/* Screen */
+.screen { display: none; animation: slideUp 0.4s ease; }
+.screen.active { display: block; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Section heading */
+.section-title { font-size: 26px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+.section-sub { color: var(--text-muted); font-size: 15px; margin-bottom: 24px; }
+
+/* Cards / panels */
+.panel {
+  background: white; border-radius: var(--radius);
+  border: 1px solid var(--border-light); padding: 28px;
+  box-shadow: var(--shadow); margin-bottom: 20px;
+}
+.panel-title {
+  font-size: 14px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-title::before { content: ''; width: 4px; height: 16px; background: var(--teal); border-radius: 2px; }
+
+/* Form */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+@media(max-width:640px) { .form-grid, .form-grid.cols3 { grid-template-columns: 1fr; } }
+
+.field {
+  background: var(--cream); border: 2px solid var(--border-light);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  transition: all 0.2s;
+}
+.field:focus-within {
+  border-color: var(--teal); background: white;
+  box-shadow: 0 0 0 4px rgba(26,158,142,0.1);
+}
+.field label {
+  display: block; font-size: 11px; color: var(--text-muted);
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;
+}
+.field input, .field select {
+  width: 100%; background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 15px; font-family: 'Heebo', sans-serif; font-weight: 500;
+}
+.field select option { background: white; }
+
+/* Sliders */
+.slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:640px) { .slider-grid { grid-template-columns: 1fr; } }
+
+.slider-item {
+  background: white; border: 2px solid var(--border-light);
+  border-radius: var(--radius-sm); padding: 16px 18px;
+  transition: border-color 0.2s; cursor: default;
+}
+.slider-item:hover { border-color: var(--teal); }
+.slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.slider-label { font-size: 13px; font-weight: 600; color: var(--text-mid); display: flex; align-items: center; gap: 6px; }
+.slider-emoji { font-size: 16px; }
+.slider-val {
+  font-weight: 800; font-size: 18px;
+  min-width: 28px; text-align: center;
+  padding: 2px 8px; border-radius: 8px;
+}
+.slider-val.low { color: var(--text-muted); background: var(--border-light); }
+.slider-val.mid { color: var(--gold); background: var(--gold-pale); }
+.slider-val.high { color: var(--teal); background: var(--teal-pale); }
+.slider-val.top { color: white; background: var(--teal); }
+
+input[type=range] {
+  width: 100%; height: 6px; -webkit-appearance: none;
+  background: var(--border-light); border-radius: 3px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px;
+  border-radius: 50%; background: linear-gradient(135deg, var(--teal), var(--teal-light));
+  cursor: pointer; box-shadow: 0 2px 8px rgba(26,158,142,0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.2); box-shadow: 0 4px 14px rgba(26,158,142,0.5);
+}
+
+/* Chips */
+.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 9px 18px; border-radius: 24px;
+  border: 2px solid var(--border-light); background: white;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; color: var(--text-mid); user-select: none;
+}
+.chip:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-pale); }
+.chip.selected {
+  background: linear-gradient(135deg, var(--teal), var(--teal-light));
+  border-color: var(--teal); color: white;
+  box-shadow: 0 4px 12px rgba(26,158,142,0.25);
+}
+
+/* Check items */
+.check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.check-item {
+  display: flex; align-items: center; gap: 10px;
+  background: white; border: 2px solid var(--border-light);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  cursor: pointer; transition: all 0.2s; user-select: none;
+}
+.check-item:hover { border-color: var(--teal); }
+.check-item.selected { border-color: var(--teal); background: var(--teal-pale); }
+.check-item input { display: none; }
+.check-box {
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 2px solid var(--border); display: flex; align-items: center;
+  justify-content: center; transition: all 0.2s; flex-shrink: 0;
+}
+.check-item.selected .check-box { background: var(--teal); border-color: var(--teal); }
+.check-box::after { content: '✓'; font-size: 12px; color: white; display: none; font-weight: 700; }
+.check-item.selected .check-box::after { display: block; }
+.check-label { font-size: 13px; font-weight: 500; color: var(--text); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 32px; border-radius: var(--radius-sm);
+  font-family: 'Heebo', sans-serif; font-weight: 700;
+  font-size: 15px; border: none; cursor: pointer; transition: all 0.2s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--teal), var(--teal-light));
+  color: white; box-shadow: 0 4px 16px rgba(26,158,142,0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(26,158,142,0.4); }
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: white; box-shadow: 0 4px 16px rgba(212,164,76,0.3);
+}
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(212,164,76,0.4); }
+.btn-secondary {
+  background: white; border: 2px solid var(--border);
+  color: var(--text-muted); box-shadow: var(--shadow);
+}
+.btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+.btn-row { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+.btn-row.centered { justify-content: center; }
+
+/* Loading */
+.loading-screen {
+  min-height: 500px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 28px;
+}
+.loading-globe {
+  width: 100px; height: 100px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; box-shadow: 0 0 40px rgba(26,158,142,0.3);
+  animation: pulse-globe 2s ease-in-out infinite;
+}
+@keyframes pulse-globe {
+  0%,100% { transform: scale(1); box-shadow: 0 0 40px rgba(26,158,142,0.3); }
+  50% { transform: scale(1.05); box-shadow: 0 0 60px rgba(26,158,142,0.5); }
+}
+.loading-title { font-size: 24px; font-weight: 800; color: var(--navy); }
+.loading-sub { color: var(--text-muted); font-size: 15px; }
+.loading-bar-wrap { width: 300px; height: 6px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
+.loading-bar { height: 100%; background: linear-gradient(90deg, var(--teal), var(--gold)); border-radius: 3px; width: 0; transition: width 0.4s ease; }
+.loading-steps { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.loading-step { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-muted); }
+.loading-step.done { color: var(--teal); font-weight: 600; }
+.ls-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: all 0.3s; }
+.loading-step.done .ls-dot { background: var(--teal); box-shadow: 0 0 8px rgba(26,158,142,0.6); }
+
+/* Results */
+.results-header {
+  background: linear-gradient(135deg, var(--navy) 0%, #1a3850 100%);
+  border-radius: 28px; padding: 36px 40px; margin-bottom: 28px; color: white; position: relative; overflow: hidden;
+}
+.results-header::after { content:'🌍'; position:absolute; left:32px; bottom:-10px; font-size:90px; opacity:0.1; }
+.results-h-title { font-size: 28px; font-weight: 900; margin-bottom: 6px; }
+.results-h-title span { color: var(--gold-light); }
+.results-h-sub { color: rgba(255,255,255,0.65); font-size: 15px; margin-bottom: 20px; }
+.results-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+.res-pill {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85);
+}
+
+/* City cards */
+.top-cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+@media(max-width:768px) { .top-cards-grid { grid-template-columns: 1fr; } }
+
+.city-card {
+  background: white; border: 2px solid var(--border-light);
+  border-radius: 24px; padding: 24px; position: relative;
+  cursor: pointer; transition: all 0.3s; overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.city-card::before {
+  content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px;
+  border-radius: 24px 24px 0 0;
+}
+.city-card.rank1::before { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+.city-card.rank2::before { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+.city-card.rank3::before { background: linear-gradient(90deg, #cd7f32, #e8a060); }
+.city-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--teal); }
+
+.rank-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px;
+}
+.rank1 .rank-badge { background: var(--gold-pale); color: #a07830; }
+.rank2 .rank-badge { background: #f0f4f8; color: #64748b; }
+.rank3 .rank-badge { background: #fef0e6; color: #a0520a; }
+
+.city-flag { font-size: 36px; margin-bottom: 8px; }
+.city-name { font-size: 22px; font-weight: 800; color: var(--navy); margin-bottom: 2px; }
+.city-country { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; font-weight: 500; }
+
+/* Score circle */
+.score-area { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.score-circle-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+.score-circle-wrap svg { width: 72px; height: 72px; transform: rotate(-90deg); }
+.score-circle-val {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 900; color: var(--navy);
+}
+.score-bars { flex: 1; }
+.sbar-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; color: var(--text-muted); font-weight: 600; }
+.sbar { height: 4px; background: var(--border-light); border-radius: 2px; margin-bottom: 7px; overflow: hidden; }
+.sbar-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+
+/* Stats */
+.city-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.stat-tile {
+  background: var(--cream); border-radius: 10px; padding: 10px 12px;
+  border: 1px solid var(--border-light);
+}
+.stat-tile-label { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-tile-val { font-size: 15px; font-weight: 700; color: var(--navy); margin-top: 2px; }
+
+/* Tags */
+.city-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag {
+  padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600;
+}
+.tag.green { background: var(--teal-pale); color: var(--teal); }
+.tag.gold { background: var(--gold-pale); color: #a07830; }
+.tag.red { background: var(--coral-pale); color: var(--coral); }
+
+/* Ranking table */
+.rank-table-wrap {
+  background: white; border: 2px solid var(--border-light);
+  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+  margin-bottom: 28px;
+}
+.rank-table-head {
+  display: grid; grid-template-columns: 44px 2fr 80px 100px 100px 80px 80px;
+  padding: 12px 20px; background: var(--navy);
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7);
+  text-transform: uppercase; letter-spacing: 0.07em; gap: 8px; align-items: center;
+}
+@media(max-width:768px) { .rank-table-head { display: none; } }
+.rank-row {
+  display: grid; grid-template-columns: 44px 2fr 80px 100px 100px 80px 80px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border-light);
+  align-items: center; gap: 8px; transition: background 0.15s; cursor: pointer; font-size: 14px;
+}
+.rank-row:last-child { border-bottom: none; }
+.rank-row:hover { background: var(--teal-pale); }
+@media(max-width:768px) { .rank-row { grid-template-columns: 36px 1fr 70px; gap:6px; } .rank-row>*:nth-child(n+4){display:none;} }
+.rank-num { font-weight: 800; color: var(--text-muted); font-size: 13px; text-align: center; }
+.rank-city-info { display: flex; align-items: center; gap: 10px; }
+.rank-city-name { font-weight: 700; color: var(--navy); }
+.rank-city-ctry { font-size: 12px; color: var(--text-muted); }
+.score-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 28px; min-width: 52px; border-radius: 14px;
+  font-weight: 800; font-size: 14px;
+}
+.score-pill.s-high { background: var(--teal-pale); color: var(--teal); }
+.score-pill.s-med { background: var(--gold-pale); color: #a07830; }
+.score-pill.s-low { background: var(--coral-pale); color: var(--coral); }
+
+/* Compare */
+.compare-wrap { background: white; border: 2px solid var(--border-light); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 28px; }
+.compare-table { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; }
+.cmp-col { border-left: 1px solid var(--border-light); }
+.cmp-col:last-child { border-left: none; }
+.cmp-head {
+  padding: 18px 16px; background: var(--navy); color: white;
+  font-weight: 700; font-size: 13px; text-align: center; border-bottom: none;
+}
+.cmp-head.label-col { background: var(--cream); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.cmp-select {
+  background: transparent; border: none; outline: none; color: white;
+  font-family: 'Heebo', sans-serif; font-weight: 700; font-size: 13px;
+  width: 100%; text-align: center; cursor: pointer;
+}
+.cmp-cell { padding: 12px 16px; border-top: 1px solid var(--border-light); font-size: 13px; font-weight: 500; text-align: center; }
+.cmp-cell.label { text-align: right; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.cmp-cell.best { color: var(--teal); font-weight: 700; background: var(--teal-pale); }
+.cmp-cell.worst { color: var(--coral); }
+@media(max-width:640px) { .compare-table { grid-template-columns: 1fr 1fr 1fr; } .cmp-col:last-child { display: none; } }
+
+/* Charts */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+@media(max-width:640px) { .charts-row { grid-template-columns: 1fr; } }
+.chart-card { background: white; border: 2px solid var(--border-light); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); }
+.chart-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+
+/* Map */
+.map-card { background: white; border: 2px solid var(--border-light); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); margin-bottom: 28px; overflow: hidden; }
+
+/* Negative recommendation */
+.neg-card {
+  background: linear-gradient(135deg, #fff8f5, #fff0ea);
+  border: 2px solid rgba(232,101,74,0.2); border-radius: var(--radius); padding: 32px; margin-bottom: 24px;
+}
+.neg-icon { font-size: 48px; margin-bottom: 12px; }
+.neg-title { font-size: 22px; font-weight: 800; color: var(--coral); margin-bottom: 10px; }
+.neg-text { color: var(--text-mid); line-height: 1.7; margin-bottom: 20px; font-size: 15px; }
+.improve-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.improve-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--text-mid); font-weight: 500; line-height: 1.5; }
+.improve-arrow { color: var(--teal); font-weight: 800; flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+
+/* Positive banner */
+.positive-banner {
+  background: linear-gradient(135deg, var(--teal-pale), #d5f0ec);
+  border: 2px solid rgba(26,158,142,0.2); border-radius: var(--radius);
+  padding: 20px 24px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 16px;
+}
+.positive-banner .pbicon { font-size: 36px; }
+.pb-text { font-size: 15px; color: var(--teal); font-weight: 600; line-height: 1.5; }
+
+/* Info box */
+.info-box {
+  background: linear-gradient(135deg, #f0f9ff, #e6f7f5);
+  border: 1px solid rgba(26,158,142,0.2);
+  border-radius: var(--radius-sm); padding: 14px 18px;
+  font-size: 14px; color: var(--text-mid); margin-bottom: 20px; line-height: 1.6;
+}
+
+/* Divider */
+.divider { height: 2px; background: var(--border-light); margin: 28px 0; border-radius: 1px; }
+.sub-section { margin-bottom: 28px; }
+.sub-label {
+  font-size: 13px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;
+}
+
+/* Responsive tweaks */
+@media(max-width:480px) {
+  .header { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .hero-panel { padding: 28px 22px; }
+  .hero-title { font-size: 24px; }
+  .results-header { padding: 24px 22px; }
+  .btn-row { flex-direction: column; }
+  .progress-step .step-label { display: none; }
+}
+
+/* Animations */
+.fade-in { animation: fadeIn 0.5s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.city-card { animation: fadeIn 0.4s ease both; }
+.city-card:nth-child(1) { animation-delay: 0.05s; }
+.city-card:nth-child(2) { animation-delay: 0.15s; }
+.city-card:nth-child(3) { animation-delay: 0.25s; }
+</style>
+</head>
+<body>
+<div class="bg-blob bg-blob-1"></div>
+<div class="bg-blob bg-blob-2"></div>
+<div class="bg-blob bg-blob-3"></div>
+
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">🌍</div>
+      <div>
+        <div class="logo-text">ReloScore</div>
+        <div class="logo-sub">מנוע הרילוקיישן החכם</div>
+      </div>
+    </div>
+    <div class="header-badge">✨ 150 ערים גלובליות</div>
+  </header>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressBar">
+    <div class="progress-step active" data-step="1" onclick="goToStep(1)">
+      <span class="step-num">1</span>
+      <span class="step-label">הפרופיל שלי</span>
+    </div>
+    <div class="progress-step" data-step="2" onclick="goToStep(2)">
+      <span class="step-num">2</span>
+      <span class="step-label">הסדרי עדיפויות</span>
+    </div>
+    <div class="progress-step" data-step="3" onclick="goToStep(3)">
+      <span class="step-num">3</span>
+      <span class="step-label">פילטרים</span>
+    </div>
+    <div class="progress-step" data-step="4">
+      <span class="step-num">4</span>
+      <span class="step-label">הערים שלי</span>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="screen active" id="screen1">
+    <div class="hero-panel">
+      <div class="hero-title">הרפתקה חדשה<br>מתחילה <span>בשאלה אחת</span></div>
+      <div class="hero-subtitle">ענה על כמה שאלות ואנחנו נמצא לך את הערים הכי מתאימות בעולם, על פי הפרופיל האישי והכלכלי שלך.</div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-num">150+</div><div class="hero-stat-label">ערים גלובליות</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">12</div><div class="hero-stat-label">קריטריוני דירוג</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">3</div><div class="hero-stat-label">מנועי ניתוח</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">~2 דק'</div><div class="hero-stat-label">זמן מילוי</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">פרטים אישיים</div>
+      <div class="form-grid cols3">
+        <div class="field">
+          <label>גיל</label>
+          <input type="number" id="age" placeholder="למשל: 32" min="18" max="80" value="32">
+        </div>
+        <div class="field">
+          <label>מדינת מגורים נוכחית</label>
+          <select id="currentCountry">
+            <option value="IL">🇮🇱 ישראל</option>
+            <option value="US">🇺🇸 ארצות הברית</option>
+            <option value="UK">🇬🇧 בריטניה</option>
+            <option value="DE">🇩🇪 גרמניה</option>
+            <option value="FR">🇫🇷 צרפת</option>
+            <option value="CA">🇨🇦 קנדה</option>
+            <option value="AU">🇦🇺 אוסטרליה</option>
+            <option value="NL">🇳🇱 הולנד</option>
+            <option value="PT">🇵🇹 פורטוגל</option>
+            <option value="OTHER">🌍 אחר</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>אזרחות</label>
+          <select id="citizenship">
+            <option value="IL">🇮🇱 ישראלית</option>
+            <option value="IL_EU">🇮🇱🇪🇺 ישראלית + אירופאית</option>
+            <option value="US">🇺🇸 אמריקאית</option>
+            <option value="EU">🇪🇺 אירופאית</option>
+            <option value="UK">🇬🇧 בריטית</option>
+            <option value="OTHER">אחר</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>מצב משפחתי</label>
+          <select id="marital">
+            <option value="single">רווק/ה</option>
+            <option value="relationship">בזוגיות</option>
+            <option value="married">נשוי/אה, ללא ילדים</option>
+            <option value="family">נשוי/אה עם ילדים</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>השכלה</label>
+          <select id="education">
+            <option value="high_school">תיכונית</option>
+            <option value="bachelor">תואר ראשון</option>
+            <option value="master">תואר שני</option>
+            <option value="phd">דוקטורט</option>
+            <option value="professional">הסמכה מקצועית</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>סטטוס תעסוקה</label>
+          <select id="employment">
+            <option value="employee">שכיר/ה</option>
+            <option value="remote">עובד/ת ריילי</option>
+            <option value="self">עצמאי/ת / פרילנסר</option>
+            <option value="entrepreneur">יזם/ית</option>
+            <option value="not_working">לא עובד/ת כרגע</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">מצב כלכלי</div>
+      <div class="form-grid cols3">
+        <div class="field">
+          <label>הכנסה שנתית נוכחית ($)</label>
+          <input type="number" id="currentIncome" placeholder="למשל: 80,000" value="80000">
+        </div>
+        <div class="field">
+          <label>הכנסה שנתית צפויה בחו"ל ($)</label>
+          <input type="number" id="expectedIncome" placeholder="למשל: 100,000" value="100000">
+        </div>
+        <div class="field">
+          <label>חסכונות / שווי נטו ($)</label>
+          <input type="number" id="savings" placeholder="למשל: 150,000" value="150000">
+        </div>
+        <div class="field">
+          <label>הכנסה חודשית מהשקעות ($)</label>
+          <input type="number" id="investmentIncome" placeholder="למשל: 1,000" value="1000">
+        </div>
+        <div class="field">
+          <label>עבודה בחו"ל — תוכנית</label>
+          <select id="workAbroad">
+            <option value="remote">המשך עבודת ריילי</option>
+            <option value="local_job">מציאת עבודה מקומית</option>
+            <option value="entrepreneur">הקמת עסק</option>
+            <option value="freelance">פרילנס</option>
+            <option value="not_working">לא מתכנן/ת לעבוד</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>שפות בשליטה</label>
+          <select id="languages">
+            <option value="en">אנגלית בלבד</option>
+            <option value="en_he">אנגלית + עברית</option>
+            <option value="en_es">אנגלית + ספרדית</option>
+            <option value="en_fr">אנגלית + צרפתית</option>
+            <option value="en_de">אנגלית + גרמנית</option>
+            <option value="multi">3+ שפות</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>נכונות ללמוד שפה מקומית</label>
+        <select id="learnLang">
+          <option value="no">מעדיף/ה מדינות דוברות אנגלית</option>
+          <option value="basic">מוכן/ה ללמוד בסיסי</option>
+          <option value="yes">מוכן/ה ללמוד עד שליטה מלאה</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToStep(2)">הגדרת עדיפויות ←</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="screen" id="screen2">
+    <div class="section-title">מה חשוב לך?</div>
+    <div class="section-sub">דרג כל גורם בסולם 1–10 — זה ישפיע ישירות על ציון הערים שלך</div>
+    <div class="info-box">💡 <strong>טיפ:</strong> גרור את הסליידרים כדי לשקף מה באמת חשוב לך. ככל שניתן ציון גבוה יותר — כך הגורם ישפיע יותר.</div>
+    <div class="panel" style="padding:20px">
+      <div class="slider-grid" id="sliderGrid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(1)">← חזרה</button>
+      <button class="btn btn-primary" onclick="goToStep(3)">פילטרים ←</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="screen" id="screen3">
+    <div class="section-title">הגדרת מגבלות</div>
+    <div class="section-sub">צמצם את החיפוש לערים שמתאימות לדרישות הקשיחות שלך</div>
+
+    <div class="panel">
+      <div class="panel-title">יבשות מועדפות</div>
+      <div class="check-grid" id="continentFilter">
+        <label class="check-item selected"><input type="checkbox" value="EU" checked><div class="check-box"></div><span class="check-label">🇪🇺 אירופה</span></label>
+        <label class="check-item selected"><input type="checkbox" value="NA" checked><div class="check-box"></div><span class="check-label">🌎 צפון אמריקה</span></label>
+        <label class="check-item"><input type="checkbox" value="AS"><div class="check-box"></div><span class="check-label">🌏 אסיה</span></label>
+        <label class="check-item"><input type="checkbox" value="SA"><div class="check-box"></div><span class="check-label">🌎 דרום אמריקה</span></label>
+        <label class="check-item"><input type="checkbox" value="OC"><div class="check-box"></div><span class="check-label">🦘 אוקיאניה</span></label>
+        <label class="check-item selected"><input type="checkbox" value="ME" checked><div class="check-box"></div><span class="check-label">🌍 מזרח תיכון</span></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">העדפת אקלים</div>
+      <div class="chip-group" id="climateFilter">
+        <div class="chip selected" data-val="sunny">☀️ שמשי וחם</div>
+        <div class="chip selected" data-val="med">🌤 ים תיכוני</div>
+        <div class="chip" data-val="mild">🌥 ממוזג</div>
+        <div class="chip" data-val="cold">❄️ קר בסדר</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">סוג עיר</div>
+      <div class="chip-group" id="cityTypeFilter">
+        <div class="chip selected" data-val="mega">🏙 מטרופולין (5M+)</div>
+        <div class="chip selected" data-val="large">🌆 עיר גדולה (1–5M)</div>
+        <div class="chip selected" data-val="medium">🏘 עיר בינונית (500K–1M)</div>
+        <div class="chip" data-val="small">🌄 עיר קטנה</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">דרישות נוספות</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>עלות מחיה מקסימלית</label>
+          <select id="maxCOL">
+            <option value="5">כל עלות (כולל יקרות)</option>
+            <option value="4">עד גבוהה</option>
+            <option value="3" selected>עד בינונית-גבוהה</option>
+            <option value="2">עד בינונית</option>
+            <option value="1">נמוכה בלבד</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>ציון בטיחות מינימלי</label>
+          <select id="minSafety">
+            <option value="1">ללא מגבלה</option>
+            <option value="5">5+ (בינוני)</option>
+            <option value="6" selected>6+ (מעל הממוצע)</option>
+            <option value="7">7+ (טוב)</option>
+            <option value="8">8+ (מצוין)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>סביבת אנגלית</label>
+          <select id="englishReq">
+            <option value="any">לא חשוב</option>
+            <option value="good" selected>מעדיף/ה ידידותי לאנגלית</option>
+            <option value="required">אנגלית שפה ראשית בלבד</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>קהילה יהודית / ישראלית</label>
+          <select id="jewishCom">
+            <option value="any" selected>לא נדרש</option>
+            <option value="prefer">מעדיף/ה שתהיה</option>
+            <option value="required">חובה — קהילה קיימת</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(2)">← חזרה</button>
+      <button class="btn btn-gold" onclick="runAnalysis()">🔍 מצא את הערים שלי!</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="screen" id="screenLoading">
+    <div class="loading-screen">
+      <div class="loading-globe">🌍</div>
+      <div class="loading-title">מנתח 150 ערים בעולם...</div>
+      <div class="loading-sub">מחשב ציונים מותאמים אישית עבורך</div>
+      <div class="loading-bar-wrap"><div class="loading-bar" id="loadingBar"></div></div>
+      <div class="loading-steps" id="loadingSteps">
+        <div class="loading-step" id="ls1"><div class="ls-dot"></div> מעבד פרופיל אישי ונתונים פיננסיים</div>
+        <div class="loading-step" id="ls2"><div class="ls-dot"></div> מחיל משקולות העדפות אישיות</div>
+        <div class="loading-step" id="ls3"><div class="ls-dot"></div> מדרג 150 ערים גלובליות</div>
+        <div class="loading-step" id="ls4"><div class="ls-dot"></div> מחשב התאמת ויזה ותעסוקה</div>
+        <div class="loading-step" id="ls5"><div class="ls-dot"></div> ניתוח כדאיות כלכלית</div>
+        <div class="loading-step" id="ls6"><div class="ls-dot"></div> יוצר את הדוח האישי שלך</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="screen" id="screenResults">
+    <div id="negativeWarning" style="display:none"></div>
+    <div id="positiveNotice" style="display:none"></div>
+
+    <div class="results-header">
+      <div class="results-h-title">הדוח שלך <span>מוכן!</span> 🎉</div>
+      <div class="results-h-sub" id="resultsSub">בהתבסס על הפרופיל שלך, מצאנו את ההתאמות הטובות ביותר</div>
+      <div class="results-pills" id="resultsMeta"></div>
+    </div>
+
+    <div class="sub-section">
+      <div class="sub-label">🏆 3 ההתאמות המובילות שלך</div>
+      <div class="top-cards-grid" id="topCityCards"></div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">ניקוד — 10 ערים מובילות</div>
+        <canvas id="barChart" height="230"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">פרופיל ציון — עיר #1</div>
+        <canvas id="radarChart" height="230"></canvas>
+      </div>
+    </div>
+
+    <div class="map-card">
+      <div class="chart-title">🗺 מפת העולם — ההמלצות שלך</div>
+      <canvas id="worldMap" height="300"></canvas>
+    </div>
+
+    <div class="sub-section">
+      <div class="sub-label">📊 דירוג מלא — 20 ערים מובילות</div>
+      <div class="rank-table-wrap">
+        <div class="rank-table-head">
+          <div>#</div><div>עיר</div><div>ציון</div><div>פוטנציאל שכר</div><div>עלות מחיה</div><div>בטיחות</div><div>אקלים</div>
+        </div>
+        <div id="rankingRows"></div>
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <div class="sub-label">⚖️ השוואת ערים — בחר עד 3</div>
+      <div class="compare-wrap">
+        <div class="compare-table" id="compareTable"></div>
+      </div>
+    </div>
+
+    <div class="btn-row centered" style="margin-top:8px; margin-bottom:40px">
+      <button class="btn btn-secondary" onclick="goToStep(1)">← התחל מחדש</button>
+      <button class="btn btn-primary" onclick="scrollToTop()">↑ חזרה לתחילה</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// =====================================================
+// CITY DATABASE
+// =====================================================
+const CITIES = [
+  {id:'lisbon',name:'ליסבון',country:'פורטוגל',flag:'🇵🇹',continent:'EU',climate:'med',size:'medium',colLevel:2,safety:7.2,englishScore:7,jewishScore:6,antiSemScore:8,salaryPot:55000,col:2200,housing:1400,taxRate:0.2,qol:8.1,sunshine:8,sea:9,transport:7,culture:8,nomad:9,startup:7,lat:38.7,lon:-9.1},
+  {id:'porto',name:'פורטו',country:'פורטוגל',flag:'🇵🇹',continent:'EU',climate:'med',size:'medium',colLevel:2,safety:7.5,englishScore:6,jewishScore:5,antiSemScore:8,salaryPot:45000,col:1800,housing:1200,taxRate:0.2,qol:7.9,sunshine:7,sea:9,transport:6,culture:8,nomad:8,startup:6,lat:41.1,lon:-8.6},
+  {id:'madrid',name:'מדריד',country:'ספרד',flag:'🇪🇸',continent:'EU',climate:'sunny',size:'large',colLevel:3,safety:7.0,englishScore:5,jewishScore:7,antiSemScore:7,salaryPot:65000,col:2600,housing:1600,taxRate:0.35,qol:8.2,sunshine:9,sea:4,transport:8,culture:9,nomad:8,startup:7,lat:40.4,lon:-3.7},
+  {id:'barcelona',name:'ברצלונה',country:'ספרד',flag:'🇪🇸',continent:'EU',climate:'med',size:'large',colLevel:3,safety:6.8,englishScore:6,jewishScore:7,antiSemScore:7,salaryPot:65000,col:2800,housing:1800,taxRate:0.35,qol:8.5,sunshine:9,sea:10,transport:8,culture:9,nomad:9,startup:8,lat:41.4,lon:2.2},
+  {id:'amsterdam',name:'אמסטרדם',country:'הולנד',flag:'🇳🇱',continent:'EU',climate:'mild',size:'medium',colLevel:4,safety:7.8,englishScore:9,jewishScore:7,antiSemScore:6,salaryPot:85000,col:3500,housing:2400,taxRate:0.38,qol:8.6,sunshine:5,sea:7,transport:9,culture:9,nomad:9,startup:9,lat:52.4,lon:4.9},
+  {id:'berlin',name:'ברלין',country:'גרמניה',flag:'🇩🇪',continent:'EU',climate:'mild',size:'large',colLevel:3,safety:7.2,englishScore:7,jewishScore:6,antiSemScore:5,salaryPot:80000,col:2800,housing:1600,taxRate:0.42,qol:8.3,sunshine:5,sea:3,transport:9,culture:9,nomad:9,startup:9,lat:52.5,lon:13.4},
+  {id:'munich',name:'מינכן',country:'גרמניה',flag:'🇩🇪',continent:'EU',climate:'mild',size:'large',colLevel:4,safety:8.5,englishScore:7,jewishScore:6,antiSemScore:6,salaryPot:90000,col:3400,housing:2200,taxRate:0.42,qol:8.8,sunshine:6,sea:1,transport:8,culture:8,nomad:7,startup:8,lat:48.1,lon:11.6},
+  {id:'vienna',name:'וינה',country:'אוסטריה',flag:'🇦🇹',continent:'EU',climate:'mild',size:'large',colLevel:3,safety:8.8,englishScore:7,jewishScore:6,antiSemScore:5,salaryPot:75000,col:3000,housing:1800,taxRate:0.44,qol:9.0,sunshine:6,sea:1,transport:9,culture:9,nomad:7,startup:7,lat:48.2,lon:16.4},
+  {id:'zurich',name:'ציריך',country:'שווייץ',flag:'🇨🇭',continent:'EU',climate:'mild',size:'medium',colLevel:5,safety:9.2,englishScore:8,jewishScore:7,antiSemScore:8,salaryPot:130000,col:5500,housing:3500,taxRate:0.25,qol:9.3,sunshine:6,sea:2,transport:9,culture:8,nomad:7,startup:8,lat:47.4,lon:8.5},
+  {id:'paris',name:'פריז',country:'צרפת',flag:'🇫🇷',continent:'EU',climate:'mild',size:'large',colLevel:4,safety:6.5,englishScore:6,jewishScore:9,antiSemScore:4,salaryPot:75000,col:3600,housing:2600,taxRate:0.45,qol:8.2,sunshine:6,sea:2,transport:9,culture:10,nomad:7,startup:8,lat:48.9,lon:2.4},
+  {id:'london',name:'לונדון',country:'בריטניה',flag:'🇬🇧',continent:'EU',climate:'mild',size:'large',colLevel:5,safety:7.2,englishScore:10,jewishScore:9,antiSemScore:5,salaryPot:100000,col:4500,housing:3200,taxRate:0.4,qol:8.3,sunshine:4,sea:5,transport:9,culture:10,nomad:8,startup:9,lat:51.5,lon:-0.1},
+  {id:'dublin',name:'דבלין',country:'אירלנד',flag:'🇮🇪',continent:'EU',climate:'mild',size:'medium',colLevel:4,safety:8.0,englishScore:10,jewishScore:6,antiSemScore:8,salaryPot:90000,col:3800,housing:2600,taxRate:0.4,qol:8.1,sunshine:4,sea:7,transport:7,culture:8,nomad:8,startup:9,lat:53.3,lon:-6.3},
+  {id:'prague',name:'פראג',country:"צ'כיה",flag:'🇨🇿',continent:'EU',climate:'mild',size:'medium',colLevel:2,safety:8.2,englishScore:6,jewishScore:6,antiSemScore:7,salaryPot:45000,col:1800,housing:1000,taxRate:0.23,qol:8.0,sunshine:6,sea:1,transport:8,culture:8,nomad:8,startup:7,lat:50.1,lon:14.4},
+  {id:'budapest',name:'בודפשט',country:'הונגריה',flag:'🇭🇺',continent:'EU',climate:'mild',size:'medium',colLevel:2,safety:7.8,englishScore:5,jewishScore:7,antiSemScore:5,salaryPot:40000,col:1500,housing:900,taxRate:0.15,qol:7.8,sunshine:6,sea:1,transport:8,culture:8,nomad:8,startup:6,lat:47.5,lon:19.0},
+  {id:'warsaw',name:'ורשה',country:'פולין',flag:'🇵🇱',continent:'EU',climate:'cold',size:'large',colLevel:2,safety:7.5,englishScore:6,jewishScore:5,antiSemScore:5,salaryPot:45000,col:1600,housing:900,taxRate:0.32,qol:7.5,sunshine:5,sea:1,transport:8,culture:7,nomad:7,startup:7,lat:52.2,lon:21.0},
+  {id:'stockholm',name:'סטוקהולם',country:'שוודיה',flag:'🇸🇪',continent:'EU',climate:'cold',size:'medium',colLevel:4,safety:8.0,englishScore:9,jewishScore:6,antiSemScore:5,salaryPot:80000,col:3400,housing:2200,taxRate:0.52,qol:8.8,sunshine:5,sea:7,transport:8,culture:8,nomad:8,startup:9,lat:59.3,lon:18.1},
+  {id:'copenhagen',name:'קופנהגן',country:'דנמרק',flag:'🇩🇰',continent:'EU',climate:'cold',size:'medium',colLevel:4,safety:8.5,englishScore:9,jewishScore:6,antiSemScore:6,salaryPot:85000,col:3600,housing:2300,taxRate:0.55,qol:9.0,sunshine:5,sea:7,transport:9,culture:8,nomad:8,startup:8,lat:55.7,lon:12.6},
+  {id:'milan',name:'מילאנו',country:'איטליה',flag:'🇮🇹',continent:'EU',climate:'med',size:'large',colLevel:4,safety:7.0,englishScore:6,jewishScore:7,antiSemScore:7,salaryPot:70000,col:3000,housing:2000,taxRate:0.43,qol:8.0,sunshine:7,sea:3,transport:7,culture:9,nomad:7,startup:7,lat:45.5,lon:9.2},
+  {id:'rome',name:'רומא',country:'איטליה',flag:'🇮🇹',continent:'EU',climate:'med',size:'large',colLevel:3,safety:6.8,englishScore:5,jewishScore:8,antiSemScore:7,salaryPot:60000,col:2600,housing:1700,taxRate:0.43,qol:7.9,sunshine:8,sea:5,transport:6,culture:10,nomad:7,startup:6,lat:41.9,lon:12.5},
+  {id:'athens',name:'אתונה',country:'יוון',flag:'🇬🇷',continent:'EU',climate:'sunny',size:'large',colLevel:2,safety:7.0,englishScore:6,jewishScore:6,antiSemScore:7,salaryPot:38000,col:1600,housing:900,taxRate:0.22,qol:7.8,sunshine:9,sea:8,transport:7,culture:8,nomad:8,startup:6,lat:38.0,lon:23.7},
+  {id:'limassol',name:'לימסול',country:'קפריסין',flag:'🇨🇾',continent:'EU',climate:'sunny',size:'small',colLevel:3,safety:8.5,englishScore:8,jewishScore:8,antiSemScore:9,salaryPot:50000,col:2200,housing:1500,taxRate:0.12,qol:8.2,sunshine:10,sea:10,transport:5,culture:7,nomad:9,startup:7,lat:34.7,lon:33.0},
+  {id:'malta',name:'ולטה',country:'מלטה',flag:'🇲🇹',continent:'EU',climate:'sunny',size:'small',colLevel:3,safety:8.8,englishScore:9,jewishScore:7,antiSemScore:9,salaryPot:48000,col:2100,housing:1300,taxRate:0.15,qol:8.3,sunshine:9,sea:10,transport:6,culture:7,nomad:8,startup:7,lat:35.9,lon:14.5},
+  {id:'dubai',name:'דובאי',country:'איחוד האמירויות',flag:'🇦🇪',continent:'ME',climate:'sunny',size:'large',colLevel:4,safety:9.0,englishScore:9,jewishScore:8,antiSemScore:8,salaryPot:110000,col:3800,housing:2500,taxRate:0.0,qol:8.5,sunshine:10,sea:8,transport:7,culture:8,nomad:9,startup:9,lat:25.2,lon:55.3},
+  {id:'abudhabi',name:'אבו דאבי',country:'איחוד האמירויות',flag:'🇦🇪',continent:'ME',climate:'sunny',size:'large',colLevel:4,safety:9.2,englishScore:8,jewishScore:7,antiSemScore:8,salaryPot:100000,col:3500,housing:2300,taxRate:0.0,qol:8.3,sunshine:10,sea:7,transport:6,culture:7,nomad:7,startup:8,lat:24.5,lon:54.4},
+  {id:'nyc',name:'ניו יורק',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'mild',size:'mega',colLevel:5,safety:6.8,englishScore:10,jewishScore:10,antiSemScore:5,salaryPot:130000,col:5500,housing:4000,taxRate:0.42,qol:8.0,sunshine:6,sea:6,transport:9,culture:10,nomad:8,startup:10,lat:40.7,lon:-74.0},
+  {id:'miami',name:'מיאמי',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'sunny',size:'large',colLevel:4,safety:6.5,englishScore:10,jewishScore:10,antiSemScore:7,salaryPot:110000,col:4200,housing:3000,taxRate:0.33,qol:8.2,sunshine:9,sea:10,transport:5,culture:8,nomad:9,startup:8,lat:25.8,lon:-80.2},
+  {id:'austin',name:'אוסטין',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'sunny',size:'large',colLevel:3,safety:7.2,englishScore:10,jewishScore:7,antiSemScore:8,salaryPot:120000,col:3200,housing:2200,taxRate:0.3,qol:8.3,sunshine:8,sea:1,transport:5,culture:7,nomad:9,startup:10,lat:30.3,lon:-97.7},
+  {id:'sf',name:'סן פרנסיסקו',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'mild',size:'large',colLevel:5,safety:6.0,englishScore:10,jewishScore:8,antiSemScore:7,salaryPot:170000,col:6000,housing:5000,taxRate:0.45,qol:7.8,sunshine:7,sea:8,transport:7,culture:9,nomad:8,startup:10,lat:37.8,lon:-122.4},
+  {id:'la',name:'לוס אנג\'לס',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'sunny',size:'mega',colLevel:5,safety:6.2,englishScore:10,jewishScore:9,antiSemScore:6,salaryPot:130000,col:5000,housing:3800,taxRate:0.45,qol:7.8,sunshine:9,sea:9,transport:4,culture:9,nomad:7,startup:9,lat:34.1,lon:-118.2},
+  {id:'toronto',name:'טורונטו',country:'קנדה',flag:'🇨🇦',continent:'NA',climate:'cold',size:'large',colLevel:4,safety:8.0,englishScore:10,jewishScore:9,antiSemScore:7,salaryPot:90000,col:3600,housing:2800,taxRate:0.43,qol:8.5,sunshine:6,sea:5,transport:7,culture:9,nomad:8,startup:9,lat:43.7,lon:-79.4},
+  {id:'vancouver',name:'ונקובר',country:'קנדה',flag:'🇨🇦',continent:'NA',climate:'mild',size:'medium',colLevel:4,safety:7.8,englishScore:10,jewishScore:7,antiSemScore:7,salaryPot:85000,col:3800,housing:3200,taxRate:0.43,qol:8.7,sunshine:6,sea:8,transport:7,culture:8,nomad:8,startup:8,lat:49.3,lon:-123.1},
+  {id:'singapore',name:'סינגפור',country:'סינגפור',flag:'🇸🇬',continent:'AS',climate:'sunny',size:'large',colLevel:5,safety:9.5,englishScore:10,jewishScore:6,antiSemScore:9,salaryPot:120000,col:4500,housing:3500,taxRate:0.22,qol:9.0,sunshine:8,sea:8,transport:9,culture:8,nomad:9,startup:10,lat:1.4,lon:103.8},
+  {id:'bangkok',name:'בנגקוק',country:'תאילנד',flag:'🇹🇭',continent:'AS',climate:'sunny',size:'mega',colLevel:1,safety:6.5,englishScore:6,jewishScore:5,antiSemScore:8,salaryPot:30000,col:1100,housing:700,taxRate:0.15,qol:7.5,sunshine:8,sea:5,transport:7,culture:8,nomad:10,startup:7,lat:13.8,lon:100.5},
+  {id:'bali',name:'באלי',country:'אינדונזיה',flag:'🇮🇩',continent:'AS',climate:'sunny',size:'small',colLevel:1,safety:7.0,englishScore:6,jewishScore:4,antiSemScore:7,salaryPot:25000,col:900,housing:600,taxRate:0.1,qol:7.8,sunshine:8,sea:10,transport:4,culture:8,nomad:10,startup:5,lat:-8.7,lon:115.2},
+  {id:'tokyo',name:'טוקיו',country:'יפן',flag:'🇯🇵',continent:'AS',climate:'mild',size:'mega',colLevel:4,safety:9.5,englishScore:5,jewishScore:5,antiSemScore:9,salaryPot:70000,col:3200,housing:2000,taxRate:0.33,qol:8.8,sunshine:6,sea:5,transport:10,culture:9,nomad:7,startup:7,lat:35.7,lon:139.7},
+  {id:'seoul',name:'סיאול',country:'דרום קוריאה',flag:'🇰🇷',continent:'AS',climate:'mild',size:'mega',colLevel:3,safety:8.8,englishScore:6,jewishScore:4,antiSemScore:9,salaryPot:65000,col:2500,housing:1800,taxRate:0.25,qol:8.5,sunshine:6,sea:4,transport:9,culture:8,nomad:8,startup:8,lat:37.6,lon:127.0},
+  {id:'kl',name:"קואלה לומפור",country:'מלזיה',flag:'🇲🇾',continent:'AS',climate:'sunny',size:'large',colLevel:1,safety:6.8,englishScore:8,jewishScore:4,antiSemScore:5,salaryPot:35000,col:1300,housing:800,taxRate:0.24,qol:7.5,sunshine:8,sea:4,transport:7,culture:7,nomad:9,startup:7,lat:3.1,lon:101.7},
+  {id:'chiang_mai',name:"צ'יאנג מאי",country:'תאילנד',flag:'🇹🇭',continent:'AS',climate:'mild',size:'medium',colLevel:1,safety:7.5,englishScore:6,jewishScore:3,antiSemScore:9,salaryPot:18000,col:700,housing:400,taxRate:0.15,qol:7.6,sunshine:8,sea:1,transport:4,culture:7,nomad:10,startup:5,lat:18.8,lon:99.0},
+  {id:'buenos_aires',name:'בואנוס איירס',country:'ארגנטינה',flag:'🇦🇷',continent:'SA',climate:'mild',size:'large',colLevel:1,safety:5.5,englishScore:5,jewishScore:9,antiSemScore:7,salaryPot:20000,col:800,housing:500,taxRate:0.35,qol:7.2,sunshine:7,sea:5,transport:7,culture:9,nomad:9,startup:7,lat:-34.6,lon:-58.4},
+  {id:'panama_city',name:'פנמה סיטי',country:'פנמה',flag:'🇵🇦',continent:'SA',climate:'sunny',size:'medium',colLevel:2,safety:6.5,englishScore:7,jewishScore:8,antiSemScore:8,salaryPot:35000,col:1500,housing:1000,taxRate:0.1,qol:7.5,sunshine:8,sea:7,transport:5,culture:7,nomad:8,startup:6,lat:9.0,lon:-79.5},
+  {id:'sydney',name:'סידני',country:'אוסטרליה',flag:'🇦🇺',continent:'OC',climate:'sunny',size:'large',colLevel:4,safety:8.5,englishScore:10,jewishScore:8,antiSemScore:7,salaryPot:100000,col:4000,housing:3200,taxRate:0.45,qol:9.0,sunshine:8,sea:10,transport:7,culture:9,nomad:8,startup:8,lat:-33.9,lon:151.2},
+  {id:'melbourne',name:'מלבורן',country:'אוסטרליה',flag:'🇦🇺',continent:'OC',climate:'mild',size:'large',colLevel:4,safety:8.3,englishScore:10,jewishScore:8,antiSemScore:7,salaryPot:95000,col:3800,housing:3000,taxRate:0.45,qol:9.1,sunshine:7,sea:7,transport:7,culture:9,nomad:8,startup:8,lat:-37.8,lon:145.0},
+  {id:'tallinn',name:'טלין',country:'אסטוניה',flag:'🇪🇪',continent:'EU',climate:'cold',size:'small',colLevel:2,safety:8.5,englishScore:7,jewishScore:5,antiSemScore:9,salaryPot:40000,col:1600,housing:900,taxRate:0.2,qol:8.0,sunshine:5,sea:6,transport:7,culture:7,nomad:9,startup:9,lat:59.4,lon:24.7},
+  {id:'tbilisi',name:"טביליסי",country:'גאורגיה',flag:'🇬🇪',continent:'EU',climate:'mild',size:'medium',colLevel:1,safety:7.5,englishScore:5,jewishScore:5,antiSemScore:8,salaryPot:22000,col:900,housing:500,taxRate:0.05,qol:7.5,sunshine:7,sea:2,transport:5,culture:7,nomad:10,startup:7,lat:41.7,lon:44.8},
+  {id:'val_valencia',name:'ולנסיה',country:'ספרד',flag:'🇪🇸',continent:'EU',climate:'sunny',size:'large',colLevel:2,safety:7.5,englishScore:5,jewishScore:5,antiSemScore:7,salaryPot:42000,col:1900,housing:1200,taxRate:0.35,qol:8.6,sunshine:9,sea:9,transport:7,culture:8,nomad:9,startup:6,lat:39.5,lon:-0.4},
+  {id:'malaga',name:'מלאגה',country:'ספרד',flag:'🇪🇸',continent:'EU',climate:'sunny',size:'medium',colLevel:2,safety:7.8,englishScore:6,jewishScore:5,antiSemScore:7,salaryPot:40000,col:1800,housing:1100,taxRate:0.35,qol:8.4,sunshine:10,sea:10,transport:5,culture:7,nomad:9,startup:5,lat:36.7,lon:-4.4},
+  {id:'tenerife',name:'טנריף',country:'ספרד',flag:'🇪🇸',continent:'EU',climate:'sunny',size:'medium',colLevel:2,safety:8.0,englishScore:6,jewishScore:5,antiSemScore:8,salaryPot:40000,col:1800,housing:1100,taxRate:0.35,qol:8.5,sunshine:10,sea:10,transport:5,culture:7,nomad:9,startup:5,lat:28.3,lon:-16.6},
+  {id:'split',name:'ספליט',country:'קרואטיה',flag:'🇭🇷',continent:'EU',climate:'med',size:'small',colLevel:2,safety:8.5,englishScore:6,jewishScore:5,antiSemScore:9,salaryPot:30000,col:1500,housing:900,taxRate:0.25,qol:8.0,sunshine:9,sea:10,transport:5,culture:7,nomad:8,startup:5,lat:43.5,lon:16.4},
+  {id:'nicosia',name:'פאפוס',country:'קפריסין',flag:'🇨🇾',continent:'EU',climate:'sunny',size:'small',colLevel:2,safety:8.8,englishScore:8,jewishScore:7,antiSemScore:9,salaryPot:43000,col:1900,housing:1200,taxRate:0.12,qol:8.2,sunshine:10,sea:10,transport:4,culture:6,nomad:8,startup:5,lat:34.8,lon:32.4},
+  {id:'bucharest',name:'בוקרשט',country:'רומניה',flag:'🇷🇴',continent:'EU',climate:'mild',size:'large',colLevel:1,safety:7.2,englishScore:6,jewishScore:6,antiSemScore:6,salaryPot:35000,col:1300,housing:700,taxRate:0.1,qol:7.3,sunshine:7,sea:2,transport:7,culture:7,nomad:8,startup:7,lat:44.4,lon:26.1},
+  {id:'belgrade',name:'בלגרד',country:'סרביה',flag:'🇷🇸',continent:'EU',climate:'mild',size:'medium',colLevel:1,safety:7.2,englishScore:6,jewishScore:5,antiSemScore:8,salaryPot:28000,col:1100,housing:600,taxRate:0.2,qol:7.4,sunshine:7,sea:1,transport:6,culture:8,nomad:9,startup:6,lat:44.8,lon:20.5},
+  {id:'florence',name:'פירנצה',country:'איטליה',flag:'🇮🇹',continent:'EU',climate:'med',size:'medium',colLevel:3,safety:7.5,englishScore:6,jewishScore:7,antiSemScore:7,salaryPot:55000,col:2500,housing:1600,taxRate:0.43,qol:8.4,sunshine:7,sea:2,transport:6,culture:10,nomad:8,startup:5,lat:43.8,lon:11.2},
+  {id:'nice',name:"ניס",country:'צרפת',flag:'🇫🇷',continent:'EU',climate:'med',size:'medium',colLevel:4,safety:7.2,englishScore:6,jewishScore:7,antiSemScore:5,salaryPot:62000,col:3000,housing:2000,taxRate:0.45,qol:8.4,sunshine:9,sea:9,transport:6,culture:8,nomad:8,startup:6,lat:43.7,lon:7.3},
+  {id:'luxembourg',name:'לוקסמבורג סיטי',country:'לוקסמבורג',flag:'🇱🇺',continent:'EU',climate:'mild',size:'small',colLevel:5,safety:9.0,englishScore:8,jewishScore:6,antiSemScore:8,salaryPot:110000,col:4500,housing:3000,taxRate:0.35,qol:8.9,sunshine:5,sea:1,transport:7,culture:7,nomad:6,startup:7,lat:49.6,lon:6.1},
+  {id:'edinburgh',name:'אדינבורו',country:'בריטניה',flag:'🇬🇧',continent:'EU',climate:'cold',size:'medium',colLevel:4,safety:8.0,englishScore:10,jewishScore:6,antiSemScore:7,salaryPot:85000,col:3400,housing:2200,taxRate:0.44,qol:8.5,sunshine:4,sea:5,transport:7,culture:9,nomad:8,startup:8,lat:55.9,lon:-3.2},
+  {id:'algarve',name:"אלגרוו (פארו)",country:'פורטוגל',flag:'🇵🇹',continent:'EU',climate:'sunny',size:'small',colLevel:2,safety:8.0,englishScore:7,jewishScore:5,antiSemScore:9,salaryPot:38000,col:1700,housing:1100,taxRate:0.2,qol:8.5,sunshine:10,sea:10,transport:4,culture:7,nomad:8,startup:4,lat:37.0,lon:-7.9},
+  {id:'madeira',name:"מדיירה (פונשל)",country:'פורטוגל',flag:'🇵🇹',continent:'EU',climate:'med',size:'small',colLevel:2,safety:8.5,englishScore:6,jewishScore:4,antiSemScore:9,salaryPot:38000,col:1700,housing:1000,taxRate:0.2,qol:8.5,sunshine:8,sea:10,transport:4,culture:7,nomad:8,startup:4,lat:32.7,lon:-17.0},
+  {id:'las_palmas',name:'לאס פלמאס',country:'ספרד',flag:'🇪🇸',continent:'EU',climate:'sunny',size:'medium',colLevel:2,safety:7.8,englishScore:6,jewishScore:4,antiSemScore:8,salaryPot:38000,col:1700,housing:1000,taxRate:0.35,qol:8.4,sunshine:10,sea:10,transport:4,culture:7,nomad:9,startup:4,lat:28.1,lon:-15.4},
+  {id:'tel_aviv',name:'תל אביב',country:'ישראל',flag:'🇮🇱',continent:'ME',climate:'sunny',size:'large',colLevel:4,safety:6.5,englishScore:8,jewishScore:10,antiSemScore:10,salaryPot:90000,col:4000,housing:3500,taxRate:0.47,qol:8.0,sunshine:9,sea:9,transport:7,culture:9,nomad:9,startup:9,lat:32.1,lon:34.8},
+  {id:'prague2',name:'ורוצלב',country:'פולין',flag:'🇵🇱',continent:'EU',climate:'mild',size:'medium',colLevel:2,safety:8.5,englishScore:7,jewishScore:5,antiSemScore:6,salaryPot:42000,col:1500,housing:850,taxRate:0.32,qol:7.8,sunshine:6,sea:1,transport:7,culture:7,nomad:7,startup:6,lat:51.1,lon:17.0},
+  {id:'riga',name:'ריגה',country:'לטביה',flag:'🇱🇻',continent:'EU',climate:'cold',size:'medium',colLevel:1,safety:7.8,englishScore:7,jewishScore:5,antiSemScore:7,salaryPot:35000,col:1400,housing:800,taxRate:0.2,qol:7.6,sunshine:5,sea:5,transport:7,culture:7,nomad:8,startup:7,lat:56.9,lon:24.1},
+  {id:'sofia',name:'סופיה',country:'בולגריה',flag:'🇧🇬',continent:'EU',climate:'mild',size:'medium',colLevel:1,safety:7.5,englishScore:5,jewishScore:5,antiSemScore:7,salaryPot:30000,col:1100,housing:600,taxRate:0.1,qol:7.2,sunshine:7,sea:2,transport:7,culture:7,nomad:8,startup:6,lat:42.7,lon:23.3},
+  {id:'san_juan',name:'סן חואן',country:'פוארטו ריקו',flag:'🇵🇷',continent:'NA',climate:'sunny',size:'medium',colLevel:3,safety:6.5,englishScore:9,jewishScore:5,antiSemScore:8,salaryPot:60000,col:2500,housing:1800,taxRate:0.04,qol:7.8,sunshine:9,sea:10,transport:4,culture:7,nomad:8,startup:5,lat:18.5,lon:-66.1},
+  {id:'denver',name:'דנבר',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'mild',size:'large',colLevel:3,safety:7.0,englishScore:10,jewishScore:7,antiSemScore:8,salaryPot:100000,col:3200,housing:2500,taxRate:0.35,qol:8.5,sunshine:8,sea:1,transport:5,culture:7,nomad:8,startup:8,lat:39.7,lon:-104.9},
+  {id:'montreal',name:'מונטריאול',country:'קנדה',flag:'🇨🇦',continent:'NA',climate:'cold',size:'large',colLevel:3,safety:7.8,englishScore:8,jewishScore:8,antiSemScore:6,salaryPot:75000,col:2800,housing:1800,taxRate:0.5,qol:8.3,sunshine:5,sea:3,transport:7,culture:9,nomad:8,startup:8,lat:45.5,lon:-73.6},
+  {id:'muscat',name:'מסקט',country:'עומאן',flag:'🇴🇲',continent:'ME',climate:'sunny',size:'medium',colLevel:3,safety:9.2,englishScore:7,jewishScore:6,antiSemScore:8,salaryPot:65000,col:2500,housing:1500,taxRate:0.0,qol:8.0,sunshine:10,sea:8,transport:5,culture:6,nomad:6,startup:5,lat:23.6,lon:58.6},
+  {id:'cape_town',name:'קייפטאון',country:'דרום אפריקה',flag:'🇿🇦',continent:'ME',climate:'med',size:'medium',colLevel:1,safety:5.5,englishScore:9,jewishScore:7,antiSemScore:7,salaryPot:28000,col:1200,housing:700,taxRate:0.28,qol:7.8,sunshine:9,sea:10,transport:4,culture:8,nomad:9,startup:6,lat:-33.9,lon:18.4},
+  {id:'ho_chi_minh',name:'הו צ\'י מין',country:'וייטנאם',flag:'🇻🇳',continent:'AS',climate:'sunny',size:'mega',colLevel:1,safety:6.8,englishScore:5,jewishScore:3,antiSemScore:9,salaryPot:22000,col:800,housing:500,taxRate:0.2,qol:7.2,sunshine:8,sea:4,transport:6,culture:7,nomad:10,startup:6,lat:10.8,lon:106.7},
+  {id:'auckland',name:'אוקלנד',country:'ניו זילנד',flag:'🇳🇿',continent:'OC',climate:'mild',size:'medium',colLevel:4,safety:8.8,englishScore:10,jewishScore:6,antiSemScore:9,salaryPot:80000,col:3600,housing:3000,taxRate:0.33,qol:8.7,sunshine:7,sea:9,transport:6,culture:7,nomad:7,startup:7,lat:-36.9,lon:174.8},
+  {id:'santiago',name:'סנטיאגו',country:'צ\'ילה',flag:'🇨🇱',continent:'SA',climate:'mild',size:'large',colLevel:2,safety:6.5,englishScore:5,jewishScore:7,antiSemScore:8,salaryPot:30000,col:1300,housing:800,taxRate:0.25,qol:7.5,sunshine:8,sea:3,transport:7,culture:7,nomad:7,startup:7,lat:-33.5,lon:-70.7},
+  {id:'zagreb',name:'זגרב',country:'קרואטיה',flag:'🇭🇷',continent:'EU',climate:'mild',size:'medium',colLevel:2,safety:8.2,englishScore:6,jewishScore:5,antiSemScore:8,salaryPot:35000,col:1400,housing:800,taxRate:0.25,qol:7.7,sunshine:7,sea:5,transport:6,culture:7,nomad:7,startup:6,lat:45.8,lon:16.0},
+  {id:'dubrovnik',name:'דוברובניק',country:'קרואטיה',flag:'🇭🇷',continent:'EU',climate:'med',size:'small',colLevel:3,safety:8.8,englishScore:7,jewishScore:4,antiSemScore:9,salaryPot:35000,col:2000,housing:1300,taxRate:0.25,qol:8.5,sunshine:9,sea:10,transport:4,culture:8,nomad:7,startup:4,lat:42.6,lon:18.1},
+  {id:'bratislava',name:'ברטיסלבה',country:'סלובקיה',flag:'🇸🇰',continent:'EU',climate:'mild',size:'medium',colLevel:2,safety:8.5,englishScore:6,jewishScore:5,antiSemScore:7,salaryPot:38000,col:1600,housing:900,taxRate:0.25,qol:7.8,sunshine:6,sea:1,transport:7,culture:7,nomad:7,startup:6,lat:48.1,lon:17.1},
+  {id:'eindhoven',name:'איינדהובן',country:'הולנד',flag:'🇳🇱',continent:'EU',climate:'mild',size:'medium',colLevel:3,safety:8.5,englishScore:9,jewishScore:6,antiSemScore:8,salaryPot:80000,col:2900,housing:1900,taxRate:0.38,qol:8.4,sunshine:5,sea:3,transport:7,culture:7,nomad:8,startup:9,lat:51.4,lon:5.5},
+  {id:'thessaloniki',name:'סלוניקי',country:'יוון',flag:'🇬🇷',continent:'EU',climate:'med',size:'medium',colLevel:2,safety:7.5,englishScore:6,jewishScore:7,antiSemScore:7,salaryPot:32000,col:1400,housing:800,taxRate:0.22,qol:7.8,sunshine:8,sea:7,transport:6,culture:8,nomad:7,startup:5,lat:40.6,lon:22.9},
+  {id:'seville',name:'סביליה',country:'ספרד',flag:'🇪🇸',continent:'EU',climate:'sunny',size:'medium',colLevel:2,safety:7.5,englishScore:5,jewishScore:5,antiSemScore:7,salaryPot:40000,col:1800,housing:1100,taxRate:0.35,qol:8.3,sunshine:10,sea:2,transport:6,culture:9,nomad:8,startup:5,lat:37.4,lon:-5.9},
+  {id:'brussels',name:'בריסל',country:'בלגיה',flag:'🇧🇪',continent:'EU',climate:'mild',size:'medium',colLevel:4,safety:6.8,englishScore:8,jewishScore:7,antiSemScore:5,salaryPot:80000,col:3200,housing:1800,taxRate:0.5,qol:7.8,sunshine:4,sea:3,transport:8,culture:8,nomad:7,startup:7,lat:50.8,lon:4.4},
+  {id:'oslo',name:'אוסלו',country:'נורווגיה',flag:'🇳🇴',continent:'EU',climate:'cold',size:'medium',colLevel:5,safety:9.0,englishScore:9,jewishScore:5,antiSemScore:6,salaryPot:100000,col:5000,housing:3000,taxRate:0.45,qol:8.9,sunshine:5,sea:7,transport:8,culture:7,nomad:7,startup:7,lat:59.9,lon:10.7},
+  {id:'helsinki',name:'הלסינקי',country:'פינלנד',flag:'🇫🇮',continent:'EU',climate:'cold',size:'medium',colLevel:4,safety:9.2,englishScore:9,jewishScore:5,antiSemScore:8,salaryPot:78000,col:3200,housing:2000,taxRate:0.5,qol:8.9,sunshine:4,sea:7,transport:8,culture:7,nomad:8,startup:8,lat:60.2,lon:25.0},
+  {id:'reykjavik',name:'רייקיאוויק',country:'איסלנד',flag:'🇮🇸',continent:'EU',climate:'cold',size:'small',colLevel:5,safety:9.8,englishScore:9,jewishScore:4,antiSemScore:9,salaryPot:90000,col:4200,housing:2800,taxRate:0.46,qol:9.2,sunshine:4,sea:8,transport:5,culture:7,nomad:7,startup:7,lat:64.1,lon:-21.9},
+  {id:'baku',name:'טביליסי עיר מגורים',country:"ג'ורג'יה",flag:'🇬🇪',continent:'EU',climate:'mild',size:'medium',colLevel:1,safety:7.8,englishScore:5,jewishScore:4,antiSemScore:8,salaryPot:20000,col:800,housing:450,taxRate:0.05,qol:7.6,sunshine:7,sea:2,transport:5,culture:7,nomad:9,startup:6,lat:41.6,lon:41.6},
+  {id:'perth',name:'פרת',country:'אוסטרליה',flag:'🇦🇺',continent:'OC',climate:'sunny',size:'large',colLevel:4,safety:8.8,englishScore:10,jewishScore:7,antiSemScore:8,salaryPot:95000,col:3600,housing:2600,taxRate:0.45,qol:8.9,sunshine:9,sea:9,transport:5,culture:7,nomad:7,startup:7,lat:-31.9,lon:115.9},
+  {id:'brisbane',name:'בריסביין',country:'אוסטרליה',flag:'🇦🇺',continent:'OC',climate:'sunny',size:'large',colLevel:3,safety:8.5,englishScore:10,jewishScore:7,antiSemScore:8,salaryPot:90000,col:3400,housing:2600,taxRate:0.45,qol:8.7,sunshine:9,sea:7,transport:5,culture:7,nomad:8,startup:7,lat:-27.5,lon:153.0},
+  {id:'osaka',name:'אוסקה',country:'יפן',flag:'🇯🇵',continent:'AS',climate:'mild',size:'large',colLevel:3,safety:9.2,englishScore:4,jewishScore:4,antiSemScore:9,salaryPot:60000,col:2800,housing:1600,taxRate:0.33,qol:8.6,sunshine:6,sea:4,transport:9,culture:9,nomad:6,startup:6,lat:34.7,lon:135.5},
+  {id:'hongkong',name:'הונג קונג',country:'סין (SAR)',flag:'🇭🇰',continent:'AS',climate:'mild',size:'mega',colLevel:5,safety:7.8,englishScore:9,jewishScore:6,antiSemScore:8,salaryPot:100000,col:5000,housing:4500,taxRate:0.17,qol:7.5,sunshine:7,sea:8,transport:9,culture:8,nomad:7,startup:8,lat:22.3,lon:114.2},
+  {id:'taipei',name:'טאיפיי',country:'טייוואן',flag:'🇹🇼',continent:'AS',climate:'mild',size:'large',colLevel:2,safety:8.8,englishScore:6,jewishScore:4,antiSemScore:9,salaryPot:55000,col:2000,housing:1300,taxRate:0.2,qol:8.5,sunshine:6,sea:5,transport:9,culture:8,nomad:9,startup:8,lat:25.0,lon:121.6},
+  {id:'medellin',name:'מדיין',country:'קולומביה',flag:'🇨🇴',continent:'SA',climate:'mild',size:'medium',colLevel:1,safety:5.8,englishScore:4,jewishScore:5,antiSemScore:8,salaryPot:18000,col:700,housing:400,taxRate:0.19,qol:7.3,sunshine:8,sea:1,transport:6,culture:7,nomad:10,startup:6,lat:6.2,lon:-75.6},
+  {id:'playa',name:'פלאיה דל קרמן',country:'מקסיקו',flag:'🇲🇽',continent:'SA',climate:'sunny',size:'small',colLevel:1,safety:6.0,englishScore:7,jewishScore:5,antiSemScore:8,salaryPot:20000,col:1200,housing:800,taxRate:0.3,qol:8.0,sunshine:9,sea:9,transport:3,culture:7,nomad:10,startup:4,lat:20.6,lon:-87.1},
+  {id:'phuket',name:"פוקט",country:'תאילנד',flag:'🇹🇭',continent:'AS',climate:'sunny',size:'medium',colLevel:1,safety:7.0,englishScore:6,jewishScore:3,antiSemScore:9,salaryPot:17000,col:900,housing:600,taxRate:0.15,qol:7.8,sunshine:9,sea:10,transport:3,culture:6,nomad:9,startup:4,lat:7.9,lon:98.4},
+  {id:'penang',name:'פינאנג',country:'מלזיה',flag:'🇲🇾',continent:'AS',climate:'sunny',size:'medium',colLevel:1,safety:7.0,englishScore:8,jewishScore:3,antiSemScore:7,salaryPot:22000,col:900,housing:500,taxRate:0.24,qol:7.8,sunshine:8,sea:7,transport:5,culture:8,nomad:9,startup:5,lat:5.4,lon:100.3},
+  {id:'naples',name:'נאפולי',country:'איטליה',flag:'🇮🇹',continent:'EU',climate:'med',size:'large',colLevel:2,safety:6.5,englishScore:4,jewishScore:5,antiSemScore:7,salaryPot:45000,col:2000,housing:1100,taxRate:0.43,qol:7.5,sunshine:8,sea:8,transport:6,culture:9,nomad:6,startup:4,lat:40.8,lon:14.3},
+  {id:'catania',name:'קטניה (סיציליה)',country:'איטליה',flag:'🇮🇹',continent:'EU',climate:'sunny',size:'medium',colLevel:2,safety:7.2,englishScore:4,jewishScore:5,antiSemScore:7,salaryPot:38000,col:1600,housing:850,taxRate:0.43,qol:7.9,sunshine:9,sea:9,transport:4,culture:8,nomad:6,startup:4,lat:37.5,lon:15.1},
+  {id:'istanbul',name:'איסטנבול',country:'טורקיה',flag:'🇹🇷',continent:'EU',climate:'mild',size:'mega',colLevel:2,safety:6.0,englishScore:5,jewishScore:5,antiSemScore:5,salaryPot:28000,col:1200,housing:700,taxRate:0.35,qol:7.2,sunshine:7,sea:8,transport:8,culture:9,nomad:8,startup:7,lat:41.0,lon:29.0},
+  {id:'seattle',name:'סיאטל',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'mild',size:'large',colLevel:4,safety:6.8,englishScore:10,jewishScore:7,antiSemScore:8,salaryPot:145000,col:4500,housing:3500,taxRate:0.4,qol:8.2,sunshine:5,sea:7,transport:7,culture:8,nomad:8,startup:10,lat:47.6,lon:-122.3},
+  {id:'boston',name:'בוסטון',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'cold',size:'large',colLevel:5,safety:7.5,englishScore:10,jewishScore:9,antiSemScore:7,salaryPot:130000,col:5000,housing:3800,taxRate:0.44,qol:8.3,sunshine:6,sea:6,transport:7,culture:9,nomad:8,startup:9,lat:42.4,lon:-71.1},
+  {id:'chicago',name:'שיקגו',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'cold',size:'mega',colLevel:4,safety:6.0,englishScore:10,jewishScore:8,antiSemScore:7,salaryPot:110000,col:3800,housing:2500,taxRate:0.42,qol:7.8,sunshine:6,sea:5,transport:8,culture:9,nomad:7,startup:8,lat:41.9,lon:-87.6},
+  {id:'dallas',name:'דאלאס',country:'ארה"ב',flag:'🇺🇸',continent:'NA',climate:'sunny',size:'large',colLevel:3,safety:6.8,englishScore:10,jewishScore:7,antiSemScore:8,salaryPot:105000,col:3000,housing:2200,taxRate:0.3,qol:7.8,sunshine:8,sea:1,transport:4,culture:7,nomad:8,startup:8,lat:32.8,lon:-96.8},
+  {id:'kotor',name:"קוטור",country:'מונטנגרו',flag:'🇲🇪',continent:'EU',climate:'med',size:'small',colLevel:1,safety:8.0,englishScore:5,jewishScore:4,antiSemScore:8,salaryPot:20000,col:900,housing:500,taxRate:0.09,qol:7.8,sunshine:8,sea:9,transport:3,culture:7,nomad:8,startup:4,lat:42.4,lon:18.8},
+  {id:'tirana',name:'טירנה',country:'אלבניה',flag:'🇦🇱',continent:'EU',climate:'med',size:'medium',colLevel:1,safety:7.5,englishScore:5,jewishScore:4,antiSemScore:9,salaryPot:18000,col:800,housing:400,taxRate:0.0,qol:7.2,sunshine:8,sea:4,transport:4,culture:6,nomad:7,startup:4,lat:41.3,lon:19.8},
+];
+
+// =====================================================
+// SLIDERS CONFIG - Hebrew
+// =====================================================
+const SLIDERS = [
+  {id:'safety',label:'בטיחות ויציבות',emoji:'🛡️',default:8},
+  {id:'col',label:'עלות מחיה נמוכה',emoji:'💰',default:7},
+  {id:'income',label:'פוטנציאל הכנסה',emoji:'📈',default:7},
+  {id:'tax',label:'ידידותיות מיסוי',emoji:'🏦',default:6},
+  {id:'healthcare',label:'איכות בריאות',emoji:'🏥',default:7},
+  {id:'sunshine',label:'שמש ומזג אוויר חם',emoji:'☀️',default:8},
+  {id:'sea',label:'קרבה לים',emoji:'🌊',default:7},
+  {id:'english',label:'סביבה אנגלופונית',emoji:'🇬🇧',default:8},
+  {id:'distance',label:'קרבה לישראל',emoji:'✈️',default:5},
+  {id:'nomad',label:'סצנת דיגיטל נומאד',emoji:'💻',default:7},
+  {id:'startup',label:'אקוסיסטם סטארטאפ',emoji:'🚀',default:5},
+  {id:'transport',label:'תחבורה ציבורית',emoji:'🚇',default:5},
+  {id:'culture',label:'תרבות, מסעדות, חיי לילה',emoji:'🍽️',default:6},
+  {id:'jewish',label:'קהילה יהודית/ישראלית',emoji:'✡️',default:7},
+  {id:'antisem',label:'אנטישמיות נמוכה',emoji:'🕊️',default:8},
+  {id:'qol',label:'איכות חיים כללית',emoji:'⭐',default:8},
+];
+
+// =====================================================
+// STATE
+// =====================================================
+let currentStep = 1;
+let userData = {};
+let weights = {};
+let results = [];
+let chartInstances = {};
+
+function init() {
+  buildSliders();
+  initCheckItems();
+  initChips();
+}
+
+function buildSliders() {
+  const grid = document.getElementById('sliderGrid');
+  grid.innerHTML = SLIDERS.map(s => `
+    <div class="slider-item">
+      <div class="slider-header">
+        <span class="slider-label"><span class="slider-emoji">${s.emoji}</span>${s.label}</span>
+        <span class="slider-val ${getValClass(s.default)}" id="sv_${s.id}">${s.default}</span>
+      </div>
+      <input type="range" min="1" max="10" value="${s.default}" id="sl_${s.id}"
+        oninput="updateSliderVal('${s.id}', this.value)">
+    </div>
+  `).join('');
+}
+
+function getValClass(v) {
+  v = parseInt(v);
+  if(v <= 3) return 'low';
+  if(v <= 6) return 'mid';
+  if(v <= 8) return 'high';
+  return 'top';
+}
+
+function updateSliderVal(id, val) {
+  const el = document.getElementById('sv_' + id);
+  if(el) { el.textContent = val; el.className = 'slider-val ' + getValClass(val); }
+}
+
+function initCheckItems() {
+  document.querySelectorAll('.check-item').forEach(el => {
+    el.addEventListener('click', function(e) {
+      if(e.target.tagName === 'INPUT') return;
+      this.classList.toggle('selected');
+      const cb = this.querySelector('input[type=checkbox]');
+      if(cb) cb.checked = !cb.checked;
+    });
+  });
+}
+
+function initChips() {
+  document.querySelectorAll('.chip').forEach(el => {
+    el.addEventListener('click', function() { this.classList.toggle('selected'); });
+  });
+}
+
+// =====================================================
+// NAVIGATION
+// =====================================================
+function goToStep(n) {
+  if(n > currentStep + 1 && n <= 3) return;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen' + n);
+  if(target) target.classList.add('active');
+  currentStep = n;
+  updateProgress(n);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function updateProgress(n) {
+  document.querySelectorAll('.progress-step').forEach(el => {
+    const s = parseInt(el.dataset.step);
+    el.classList.remove('active','done');
+    if(s < n) el.classList.add('done');
+    else if(s === n) el.classList.add('active');
+  });
+}
+
+// =====================================================
+// DATA COLLECTION
+// =====================================================
+function collectUserData() {
+  userData = {
+    age: parseInt(document.getElementById('age').value) || 32,
+    country: document.getElementById('currentCountry').value,
+    citizenship: document.getElementById('citizenship').value,
+    marital: document.getElementById('marital').value,
+    education: document.getElementById('education').value,
+    employment: document.getElementById('employment').value,
+    currentIncome: parseFloat(document.getElementById('currentIncome').value) || 80000,
+    expectedIncome: parseFloat(document.getElementById('expectedIncome').value) || 100000,
+    savings: parseFloat(document.getElementById('savings').value) || 150000,
+    investmentIncome: parseFloat(document.getElementById('investmentIncome').value) || 0,
+    workAbroad: document.getElementById('workAbroad').value,
+    languages: document.getElementById('languages').value,
+    learnLang: document.getElementById('learnLang').value,
+  };
+  weights = {};
+  SLIDERS.forEach(s => { weights[s.id] = parseFloat(document.getElementById('sl_' + s.id).value) / 10; });
+}
+
+function getFilters() {
+  const continents = [];
+  document.querySelectorAll('#continentFilter .check-item.selected input').forEach(cb => continents.push(cb.value));
+  const climates = [];
+  document.querySelectorAll('#climateFilter .chip.selected').forEach(c => climates.push(c.dataset.val));
+  const sizes = [];
+  document.querySelectorAll('#cityTypeFilter .chip.selected').forEach(c => sizes.push(c.dataset.val));
+  return {
+    continents: continents.length ? continents : ['EU','NA','AS','SA','OC','ME'],
+    climates: climates.length ? climates : ['sunny','med','mild','cold'],
+    sizes: sizes.length ? sizes : ['mega','large','medium','small'],
+    maxCOL: parseInt(document.getElementById('maxCOL').value),
+    minSafety: parseFloat(document.getElementById('minSafety').value),
+    englishReq: document.getElementById('englishReq').value,
+    jewishCom: document.getElementById('jewishCom').value,
+  };
+}
+
+// =====================================================
+// SCORING ENGINE
+// =====================================================
+function scoreCity(city, filters) {
+  if(!filters.continents.includes(city.continent)) return null;
+  if(!filters.climates.includes(city.climate)) return null;
+  if(!filters.sizes.includes(city.size)) return null;
+  if(city.colLevel > filters.maxCOL) return null;
+  if(city.safety < filters.minSafety) return null;
+  if(filters.englishReq === 'required' && city.englishScore < 8) return null;
+  if(filters.jewishCom === 'required' && city.jewishScore < 6) return null;
+  if(filters.jewishCom === 'prefer' && city.jewishScore < 4) return null;
+
+  // Personal Fit (40%)
+  const visaBonus = userData.citizenship === 'IL_EU' ? 1.0 : userData.citizenship === 'EU' ? 0.9 : 0.7;
+  const langFit = (city.englishScore / 10) * (userData.learnLang === 'yes' ? 1.0 : userData.learnLang === 'basic' ? 0.8 : 0.6) + (userData.learnLang === 'yes' ? 0.2 : 0);
+  const incomeRatio = Math.min(1, (userData.expectedIncome / 12) / (city.col * 3));
+  let empScore = 0.6;
+  if(userData.workAbroad === 'remote') empScore = city.nomad / 10;
+  else if(userData.workAbroad === 'local_job') empScore = Math.min(1, city.startup / 10 * 0.5 + 0.3);
+  else if(userData.workAbroad === 'entrepreneur') empScore = city.startup / 10;
+  else if(userData.workAbroad === 'freelance') empScore = city.nomad / 10 * 0.9;
+  const personalFit = Math.min(1, visaBonus*0.25 + Math.min(1,langFit)*0.25 + incomeRatio*0.3 + empScore*0.2);
+
+  // Lifestyle (35%)
+  const totalW = Object.values(weights).reduce((a,b) => a+b, 0) || 1;
+  const cityScores = {
+    safety: city.safety/10, col: (5-city.colLevel+1)/5, income: Math.min(1,city.salaryPot/150000),
+    tax: 1-city.taxRate, healthcare: city.qol/10, sunshine: city.sunshine/10, sea: city.sea/10,
+    english: city.englishScore/10,
+    distance: city.continent==='ME'?0.9:city.continent==='EU'?0.7:city.continent==='AS'?0.5:0.3,
+    nomad: city.nomad/10, startup: city.startup/10, transport: city.transport/10,
+    culture: city.culture/10, jewish: city.jewishScore/10, antisem: city.antiSemScore/10, qol: city.qol/10,
+  };
+  let lifestyle = 0;
+  Object.keys(weights).forEach(k => { lifestyle += (cityScores[k]||0) * (weights[k]||0); });
+  lifestyle = Math.min(1, lifestyle / (totalW/Object.keys(weights).length));
+
+  // Economic (25%)
+  const incomeAfterTax = (userData.expectedIncome/12 + (userData.investmentIncome||0)) * (1-city.taxRate);
+  const disposable = incomeAfterTax - city.col;
+  const disposableRatio = Math.min(1, Math.max(0, disposable/city.col));
+  const housingAff = Math.min(1, (userData.savings/200000) * (1/city.colLevel) * 0.5 + disposableRatio*0.5);
+  const economic = Math.min(1, Math.max(0, disposableRatio*0.5 + housingAff*0.3 + (1-city.taxRate)*0.2));
+
+  const score = personalFit*0.40 + lifestyle*0.35 + economic*0.25;
+  return {
+    ...city,
+    score: Math.round(score*100),
+    personalFit: Math.round(personalFit*100),
+    lifestyleScore: Math.round(lifestyle*100),
+    economicScore: Math.round(economic*100),
+    disposableMonthly: Math.round((userData.expectedIncome/12*(1-city.taxRate)) - city.col),
+  };
+}
+
+function isNegativeCase() {
+  const monthly = (userData.currentIncome + userData.investmentIncome*12) / 12;
+  return userData.savings < 15000 && monthly < 2500;
+}
+
+// =====================================================
+// RUN
+// =====================================================
+function runAnalysis() {
+  collectUserData();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screenLoading').classList.add('active');
+  updateProgress(4);
+
+  const bar = document.getElementById('loadingBar');
+  const steps = ['ls1','ls2','ls3','ls4','ls5','ls6'];
+  let i = 0, pct = 0;
+
+  function tick() {
+    if(i < steps.length) {
+      document.getElementById(steps[i]).classList.add('done');
+      i++; pct = Math.round((i/steps.length)*100);
+      bar.style.width = pct + '%';
+      setTimeout(tick, 350 + Math.random()*250);
+    } else {
+      setTimeout(() => {
+        computeResults(); showResults();
+      }, 400);
+    }
+  }
+  setTimeout(tick, 400);
+}
+
+function computeResults() {
+  const filters = getFilters();
+  results = CITIES.map(c => scoreCity(c, filters)).filter(Boolean).sort((a,b)=>b.score-a.score);
+}
+
+// =====================================================
+// SHOW RESULTS
+// =====================================================
+function showResults() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screenResults').classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+
+  if(isNegativeCase()) renderNegative();
+  else {
+    document.getElementById('negativeWarning').style.display = 'none';
+    const pn = document.getElementById('positiveNotice');
+    pn.style.display = 'flex';
+    pn.innerHTML = `
+      <div class="positive-banner">
+        <div class="pbicon">🎯</div>
+        <div class="pb-text">על סמך הפרופיל הכלכלי שלך — <strong>רילוקיישן עשוי לשפר משמעותית את איכות חייך!</strong><br>מצאנו ${results.length} ערים שמתאימות לך. הנה ההמלצות המובילות:</div>
+      </div>`;
+  }
+
+  renderMeta();
+  renderTopCards();
+  renderRankingTable();
+  renderCompare();
+  setTimeout(() => { renderBarChart(); renderRadarChart(); renderWorldMap(); }, 300);
+}
+
+function renderNegative() {
+  const div = document.getElementById('negativeWarning');
+  div.style.display = 'block';
+  div.innerHTML = `
+    <div class="neg-card">
+      <div class="neg-icon">⚠️</div>
+      <div class="neg-title">רגע לפני שאורזים את המזוודות...</div>
+      <div class="neg-text">על סמך הנתונים הפיננסיים שהזנת (חסכונות מתחת ל-$15,000 והכנסה מתחת ל-$2,500 בחודש), רילוקיישן עלול לפגוע באיכות חייך במקום לשפר אותה. עלויות הסתגלות, ויזות, ולינה ראשונית יכולות להיות גבוהות מהצפוי.</div>
+      <strong style="color:var(--text-mid);font-size:14px;">מה כדאי לעשות קודם:</strong>
+      <ul class="improve-list" style="margin-top:10px">
+        <li><span class="improve-arrow">→</span> צבור חסכונות של לפחות $30,000–50,000 לפני המעבר</li>
+        <li><span class="improve-arrow">→</span> הבטח חוזה עבודה מרחוק שיוצא איתך לחו"ל</li>
+        <li><span class="improve-arrow">→</span> כוון לערים זולות (עלות מחיה מתחת ל-$1,500/חודש) כמו טביליסי, בוקרשט, בודפשט</li>
+        <li><span class="improve-arrow">→</span> בצע סלייב ניסיוני של חודש-חודשיים לפני מחויבות מלאה</li>
+        <li><span class="improve-arrow">→</span> פתח מקורות הכנסה פאסיביים/פרילנס לפני המעבר</li>
+      </ul>
+    </div>`;
+}
+
+function renderMeta() {
+  const top = results[0];
+  const sub = document.getElementById('resultsSub');
+  if(top) sub.textContent = `מצאנו ${results.length} ערים מתאימות — ההתאמה המובילת שלך היא ${top.name}, ${top.country}`;
+  const meta = document.getElementById('resultsMeta');
+  meta.innerHTML = `
+    <div class="res-pill">✅ ${results.length} ערים נותחו</div>
+    <div class="res-pill">🏆 ${top ? top.name+', '+top.country : ''}</div>
+    <div class="res-pill">💰 הכנסה: $${userData.expectedIncome?.toLocaleString()}/שנה</div>
+    <div class="res-pill">🌍 אזרחות: ${({'IL':'ישראלית','IL_EU':'ישראלית+אירופאית','EU':'אירופאית','US':'אמריקאית','UK':'בריטית','OTHER':'אחר'})[userData.citizenship]||userData.citizenship}</div>
+  `;
+}
+
+function renderTopCards() {
+  const container = document.getElementById('topCityCards');
+  const top3 = results.slice(0,3);
+  const rankLabels = ['🥇 התאמה מושלמת','🥈 מועמד חזק','🥉 בחירה מצוינת'];
+  const rankCls = ['rank1','rank2','rank3'];
+  const colors = ['#d4a44c','#94a3b8','#cd7f32'];
+
+  container.innerHTML = top3.map((city,i) => {
+    const r = 30; const c = 2*Math.PI*r;
+    const prog = (city.score/100)*c;
+    const colLabel = ['','נמוכה 💚','בינ-נמוכה 🟡','בינונית 🟠','גבוהה 🔴','גבוהה מאוד ⛔'][city.colLevel]||'';
+    return `
+    <div class="city-card ${rankCls[i]}">
+      <div class="rank-badge">${rankLabels[i]}</div>
+      <div class="city-flag">${city.flag}</div>
+      <div class="city-name">${city.name}</div>
+      <div class="city-country">${city.country}</div>
+      <div class="score-area">
+        <div class="score-circle-wrap">
+          <svg viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r="${r}" fill="none" stroke="#f0e8d8" stroke-width="7"/>
+            <circle cx="36" cy="36" r="${r}" fill="none" stroke="${colors[i]}" stroke-width="7"
+              stroke-dasharray="${prog} ${c}" stroke-linecap="round"/>
+          </svg>
+          <div class="score-circle-val">${city.score}</div>
+        </div>
+        <div class="score-bars">
+          <div class="sbar-row"><span>התאמה אישית</span><span style="color:var(--teal)">${city.personalFit}</span></div>
+          <div class="sbar"><div class="sbar-fill" style="width:${city.personalFit}%;background:var(--teal)"></div></div>
+          <div class="sbar-row"><span>סגנון חיים</span><span style="color:var(--gold)">${city.lifestyleScore}</span></div>
+          <div class="sbar"><div class="sbar-fill" style="width:${city.lifestyleScore}%;background:var(--gold)"></div></div>
+          <div class="sbar-row"><span>כלכלי</span><span style="color:var(--coral)">${city.economicScore}</span></div>
+          <div class="sbar"><div class="sbar-fill" style="width:${city.economicScore}%;background:var(--coral)"></div></div>
+        </div>
+      </div>
+      <div class="city-stats-grid">
+        <div class="stat-tile"><div class="stat-tile-label">עלות חודשית</div><div class="stat-tile-val">$${city.col.toLocaleString()}</div></div>
+        <div class="stat-tile"><div class="stat-tile-label">פוט' שכר</div><div class="stat-tile-val">$${(city.salaryPot/1000).toFixed(0)}K/שנה</div></div>
+        <div class="stat-tile"><div class="stat-tile-label">בטיחות</div><div class="stat-tile-val">${city.safety}/10</div></div>
+        <div class="stat-tile"><div class="stat-tile-label">מס</div><div class="stat-tile-val">${Math.round(city.taxRate*100)}%</div></div>
+      </div>
+      <div class="city-tags">
+        ${city.nomad>=9?'<span class="tag green">🌐 נומאד הוטספוט</span>':''}
+        ${city.antiSemScore>=9?'<span class="tag green">✡️ בטוח לישראלים</span>':''}
+        ${city.taxRate===0?'<span class="tag gold">0% מס!</span>':''}
+        ${city.sea>=9?'<span class="tag green">🌊 ים</span>':''}
+        ${city.colLevel<=2?'<span class="tag green">💚 זול</span>':''}
+        ${city.englishScore>=9?'<span class="tag green">🇬🇧 אנגלית</span>':''}
+        ${city.startup>=9?'<span class="tag gold">🚀 הייטק</span>':''}
+        ${city.colLevel>=5?'<span class="tag red">💸 יקר</span>':''}
+        ${city.jewishScore>=8?'<span class="tag gold">👥 קהילה יהודית</span>':''}
+        ${city.sunshine>=9?'<span class="tag green">☀️ שמשי</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRankingTable() {
+  const top20 = results.slice(0,20);
+  const climateHe = {sunny:'☀️ שמשי',med:'🌤 ים-תיכוני',mild:'🌥 ממוזג',cold:'❄️ קר'};
+  const colHe = ['','💚 נמוכה','🟡 בינ-נמוכה','🟠 בינונית','🔴 גבוהה','⛔ גבוהה מאוד'];
+  document.getElementById('rankingRows').innerHTML = top20.map((city,i) => {
+    const cls = city.score>=70?'s-high':city.score>=50?'s-med':'s-low';
+    return `
+    <div class="rank-row" id="city_${city.id}">
+      <div class="rank-num">${i+1}</div>
+      <div class="rank-city-info">${city.flag} <div><div class="rank-city-name">${city.name}</div><div class="rank-city-ctry">${city.country}</div></div></div>
+      <div><span class="score-pill ${cls}">${city.score}</span></div>
+      <div>$${(city.salaryPot/1000).toFixed(0)}K</div>
+      <div>${colHe[city.colLevel]||''}</div>
+      <div>${city.safety}/10</div>
+      <div>${climateHe[city.climate]||''}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCompare() {
+  const top5 = results.slice(0,5);
+  const opts = top5.map(c=>`<option value="${c.id}">${c.flag} ${c.name}</option>`).join('');
+  const rows = [
+    {label:'ציון כולל', fn:c=>c.score},
+    {label:'עלות חודשית', fn:c=>'$'+c.col.toLocaleString()},
+    {label:'פוטנציאל שכר', fn:c=>'$'+(c.salaryPot/1000).toFixed(0)+'K/שנה'},
+    {label:'מס הכנסה', fn:c=>Math.round(c.taxRate*100)+'%'},
+    {label:'בטיחות', fn:c=>c.safety+'/10'},
+    {label:'אקלים', fn:c=>({sunny:'☀️ שמשי',med:'🌤 ים-תיכוני',mild:'🌥 ממוזג',cold:'❄️ קר'}[c.climate])},
+    {label:'איכות חיים', fn:c=>c.qol+'/10'},
+    {label:'נומאד', fn:c=>c.nomad+'/10'},
+    {label:'אנגלית', fn:c=>c.englishScore+'/10'},
+    {label:'קהילה יהודית', fn:c=>c.jewishScore+'/10'},
+    {label:'אנטישמיות נמוכה', fn:c=>c.antiSemScore+'/10'},
+    {label:'עודף חודשי', fn:c=>'$'+c.disposableMonthly.toLocaleString()},
+  ];
+
+  let html = '<div class="cmp-col">';
+  html += '<div class="cmp-head label-col">קריטריון</div>';
+  rows.forEach(r => { html += `<div class="cmp-cell label">${r.label}</div>`; });
+  html += '</div>';
+
+  for(let ci=0;ci<3;ci++) {
+    const city = top5[ci];
+    html += `<div class="cmp-col" id="cmpCol${ci}">`;
+    html += `<div class="cmp-head"><select class="cmp-select" onchange="updateCmpCol(${ci},this.value)">${opts}</select></div>`;
+    rows.forEach((r,ri) => {
+      html += `<div class="cmp-cell" id="cmc_${ci}_${ri}">${city ? r.fn(city) : '-'}</div>`;
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('compareTable').innerHTML = html;
+  for(let ci=0;ci<3;ci++) {
+    const sel = document.querySelector(`#cmpCol${ci} .cmp-select`);
+    if(sel && top5[ci]) sel.value = top5[ci].id;
+  }
+}
+
+function updateCmpCol(ci, cityId) {
+  const city = results.find(c=>c.id===cityId);
+  if(!city) return;
+  const fns = [
+    c=>c.score, c=>'$'+c.col.toLocaleString(), c=>'$'+(c.salaryPot/1000).toFixed(0)+'K/שנה',
+    c=>Math.round(c.taxRate*100)+'%', c=>c.safety+'/10',
+    c=>({sunny:'☀️ שמשי',med:'🌤 ים-תיכוני',mild:'🌥 ממוזג',cold:'❄️ קר'}[c.climate]),
+    c=>c.qol+'/10', c=>c.nomad+'/10', c=>c.englishScore+'/10',
+    c=>c.jewishScore+'/10', c=>c.antiSemScore+'/10', c=>'$'+c.disposableMonthly.toLocaleString(),
+  ];
+  fns.forEach((f,i) => { const el=document.getElementById(`cmc_${ci}_${i}`); if(el) el.textContent=f(city); });
+}
+
+// =====================================================
+// CHARTS
+// =====================================================
+function renderBarChart() {
+  if(chartInstances.bar) chartInstances.bar.destroy();
+  const top10 = results.slice(0,10);
+  const ctx = document.getElementById('barChart').getContext('2d');
+  chartInstances.bar = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: top10.map(c=>c.name),
+      datasets:[
+        {label:'התאמה אישית',data:top10.map(c=>c.personalFit),backgroundColor:'rgba(26,158,142,0.8)',borderRadius:6},
+        {label:'סגנון חיים',data:top10.map(c=>c.lifestyleScore),backgroundColor:'rgba(212,164,76,0.75)',borderRadius:6},
+        {label:'כלכלי',data:top10.map(c=>c.economicScore),backgroundColor:'rgba(232,101,74,0.7)',borderRadius:6},
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:'#8890a8',font:{size:11,family:'Heebo'}}}},
+      scales:{
+        x:{ticks:{color:'#8890a8',font:{size:10,family:'Heebo'}},grid:{color:'#f0e8d8'}},
+        y:{ticks:{color:'#8890a8'},grid:{color:'#f0e8d8'},max:100}
+      }
+    }
+  });
+}
+
+function renderRadarChart() {
+  if(chartInstances.radar) chartInstances.radar.destroy();
+  const top = results[0]; if(!top) return;
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  chartInstances.radar = new Chart(ctx, {
+    type:'radar',
+    data:{
+      labels:['בטיחות','עלות','הכנסה','מיסוי','נומאד','תרבות','QOL'],
+      datasets:[{
+        label:top.name,
+        data:[top.safety*10,(6-top.colLevel)*20,Math.min(100,top.salaryPot/1000),(1-top.taxRate)*100,top.nomad*10,top.culture*10,top.qol*10],
+        borderColor:'#1a9e8e',backgroundColor:'rgba(26,158,142,0.12)',borderWidth:2.5,pointBackgroundColor:'#1a9e8e',
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:'#8890a8',font:{size:11,family:'Heebo'}}}},
+      scales:{r:{ticks:{display:false},grid:{color:'#e8dcc8'},pointLabels:{color:'#3d4460',font:{size:10,family:'Heebo'}},suggestedMin:0,suggestedMax:100}}
+    }
+  });
+}
+
+function renderWorldMap() {
+  const canvas = document.getElementById('worldMap');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || 900;
+  canvas.height = 300;
+
+  // Warm background
+  ctx.fillStyle = '#f5f0e8';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Grid
+  ctx.strokeStyle = '#e0d8cc'; ctx.lineWidth = 0.8;
+  for(let i=0;i<8;i++){ctx.beginPath();ctx.moveTo(i/8*canvas.width,0);ctx.lineTo(i/8*canvas.width,canvas.height);ctx.stroke();}
+  for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(0,i/5*canvas.height);ctx.lineTo(canvas.width,i/5*canvas.height);ctx.stroke();}
+
+  // Continent blobs
+  ctx.fillStyle = '#d8d0c0';
+  const continents = [
+    [[0.05,0.15],[0.25,0.12],[0.3,0.45],[0.15,0.55],[0.05,0.45]],
+    [[0.18,0.55],[0.3,0.52],[0.32,0.85],[0.2,0.9],[0.12,0.75]],
+    [[0.42,0.08],[0.56,0.08],[0.59,0.35],[0.49,0.42],[0.42,0.3]],
+    [[0.44,0.36],[0.58,0.36],[0.62,0.75],[0.5,0.82],[0.4,0.65]],
+    [[0.55,0.06],[0.9,0.06],[0.93,0.55],[0.75,0.62],[0.55,0.45]],
+    [[0.78,0.6],[0.93,0.58],[0.95,0.8],[0.82,0.86],[0.76,0.72]],
+  ];
+  continents.forEach(pts => {
+    ctx.beginPath();
+    pts.forEach((pt,i)=>{const x=pt[0]*canvas.width,y=pt[1]*canvas.height;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.closePath(); ctx.fill();
+  });
+
+  function latLon(lat,lon){return[(lon+180)/360*canvas.width,(90-lat)/180*canvas.height];}
+
+  const top10 = results.slice(0,10);
+  top10.forEach((city,i)=>{
+    const [x,y] = latLon(city.lat, city.lon);
+    const r = i<3?11:7;
+    const color = i===0?'#d4a44c':i<3?'#1a9e8e':'#3d4460';
+
+    // Glow ring
+    ctx.beginPath(); ctx.arc(x,y,r+6,0,Math.PI*2);
+    ctx.fillStyle = i===0?'rgba(212,164,76,0.2)':'rgba(26,158,142,0.2)';
+    ctx.fill();
+
+    // Circle
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+
+    // Rank
+    ctx.fillStyle = 'white'; ctx.font = `bold ${i<3?10:9}px Heebo`;
+    ctx.textAlign = 'center'; ctx.fillText(i+1, x, y+3.5);
+
+    // Label (first 5)
+    if(i<5){
+      ctx.fillStyle = '#1a2640'; ctx.font = `600 ${i<3?12:10}px Heebo`;
+      ctx.textAlign = 'right';
+      ctx.fillText(city.name, x - r - 4, y + 4);
+    }
+    ctx.textAlign = 'start';
+  });
+}
+
+function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
+
+// Init
+window.addEventListener('load', init);
+window.addEventListener('resize', ()=>{ if(results.length) renderWorldMap(); });
+</script>
+</body>
+</html>
